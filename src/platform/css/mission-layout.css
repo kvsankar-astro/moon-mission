@@ -237,10 +237,10 @@ canvas {
 
 .aux-camera-view__minimize-button,
 .aux-camera-view__header-button {
-    border: 1px solid rgba(121, 171, 255, 0.35);
-    border-radius: 4px;
-    background: rgba(14, 24, 41, 0.72);
-    color: rgba(219, 233, 252, 0.95);
+    border: 1px solid rgba(121, 171, 255, 0.26);
+    border-radius: 999px;
+    background: rgba(10, 18, 32, 0.52);
+    color: rgba(219, 233, 252, 0.88);
     font-family: var(--ui-font-condensed);
     font-size: var(--ui-type-body-sm);
     font-weight: 700;
@@ -252,8 +252,9 @@ canvas {
 
 .aux-camera-view__minimize-button:hover,
 .aux-camera-view__header-button:hover {
-    background: rgba(66, 126, 218, 0.35);
-    border-color: rgba(132, 183, 255, 0.7);
+    background: rgba(77, 141, 255, 0.14);
+    border-color: rgba(132, 183, 255, 0.58);
+    color: rgba(240, 247, 255, 0.96);
 }
 
 .aux-camera-view__close-button {
@@ -607,11 +608,16 @@ html[data-app-view="selector"] .mission-loading-overlay,
 }
 
 .aux-camera-view__composer-lock-buttons {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 1px;
     flex-wrap: wrap;
     min-width: 0;
+    width: fit-content;
+    padding: 1px;
+    border: 1px solid rgba(100, 130, 180, 0.44);
+    border-radius: 999px;
+    background: rgba(10, 18, 32, 0.82);
 }
 
 .aux-camera-view__composer-section-label {
@@ -668,6 +674,35 @@ html[data-app-view="selector"] .mission-loading-overlay,
     cursor: pointer;
 }
 
+.aux-camera-view__composer-lock-buttons .aux-camera-view__composer-button,
+.aux-camera-view__composer-optics-header .aux-camera-view__composer-button {
+    min-height: 21px;
+    padding: 0 8px;
+    border-color: transparent;
+    border-radius: 999px;
+    background: transparent;
+    color: #aebbd2;
+    font-family: var(--ui-font-condensed);
+    font-size: var(--ui-type-label);
+    font-weight: 700;
+    letter-spacing: 0;
+    text-transform: uppercase;
+}
+
+.aux-camera-view__composer-lock-buttons .aux-camera-view__composer-button:hover,
+.aux-camera-view__composer-optics-header .aux-camera-view__composer-button:hover {
+    color: #dbe7ff;
+    background: rgba(45, 75, 125, 0.28);
+}
+
+.aux-camera-view__composer-lock-buttons .aux-camera-view__composer-button.is-active,
+.aux-camera-view__composer-optics-header .aux-camera-view__composer-button.is-active {
+    border-color: rgba(120, 170, 255, 0.72);
+    background: rgba(77, 141, 255, 0.22);
+    color: var(--header-pill-current-color);
+    text-shadow: 0 0 10px rgba(127, 227, 255, 0.3);
+}
+
 .aux-camera-view__composer-button:hover {
     background: rgba(66, 126, 218, 0.35);
     border-color: rgba(132, 183, 255, 0.7);
@@ -680,10 +715,10 @@ html[data-app-view="selector"] .mission-loading-overlay,
 }
 
 .aux-camera-view__composer-pill {
-    border: 1px solid rgba(121, 171, 255, 0.35);
+    border: 1px solid rgba(184, 212, 138, 0.24);
     border-radius: 999px;
-    background: rgba(14, 24, 41, 0.72);
-    color: rgba(211, 226, 248, 0.92);
+    background: rgba(16, 24, 22, 0.78);
+    color: var(--header-pill-launcher-color);
     font-size: 10px;
     font-weight: 600;
     line-height: 1;
@@ -693,9 +728,10 @@ html[data-app-view="selector"] .mission-loading-overlay,
 }
 
 .aux-camera-view__composer-pill.is-active {
-    background: rgba(68, 130, 223, 0.42);
-    border-color: rgba(132, 183, 255, 0.72);
-    color: rgba(240, 247, 255, 0.97);
+    background: var(--header-pill-launcher-bg);
+    border-color: var(--header-pill-launcher-border);
+    color: #d9efad;
+    text-shadow: 0 0 10px rgba(184, 212, 138, 0.24);
 }
 
 .aux-camera-view__composer-crater-row {
@@ -1228,6 +1264,9 @@ html[data-app-view="selector"] .mission-loading-overlay,
 .aux-camera-view__composer-reset-button {
     flex: 0 0 auto;
     padding-inline: 8px;
+    border-color: rgba(148, 176, 213, 0.22);
+    background: rgba(7, 14, 25, 0.48);
+    color: rgba(211, 226, 248, 0.78);
 }
 
 .aux-camera-view__composer-transport-row {
@@ -1353,8 +1392,23 @@ html[data-app-view="selector"] .mission-loading-overlay,
 .aux-camera-view__composer-optics-header {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 1px;
     min-width: 0;
+    width: fit-content;
+    padding: 1px;
+    border: 1px solid rgba(100, 130, 180, 0.44);
+    border-radius: 999px;
+    background: rgba(10, 18, 32, 0.82);
+}
+
+.aux-camera-view__composer-optics-header .aux-camera-view__composer-label {
+    padding: 0 8px 0 5px;
+    color: rgba(176, 203, 241, 0.78);
+    font-family: var(--ui-font-condensed);
+    font-size: var(--ui-type-label);
+    font-weight: 700;
+    letter-spacing: var(--ui-tracking-label);
+    text-transform: uppercase;
 }
 
 .aux-camera-view__composer-optics-row {
@@ -1835,9 +1889,10 @@ html[data-app-view="selector"] .mission-loading-overlay,
 }
 
 .aux-camera-view__pill--button.is-on {
-    border-color: rgba(196, 168, 255, 0.65);
-    color: rgba(245, 236, 255, 0.98);
-    background: rgba(150, 105, 255, 0.34);
+    border-color: rgba(120, 170, 255, 0.72);
+    color: var(--header-pill-current-color);
+    background: rgba(77, 141, 255, 0.22);
+    text-shadow: 0 0 10px rgba(127, 227, 255, 0.22);
 }
 
 .aux-camera-view__pill--button.is-off {
@@ -1847,9 +1902,9 @@ html[data-app-view="selector"] .mission-loading-overlay,
 }
 
 .aux-camera-view__pill--far {
-    border-color: rgba(190, 164, 255, 0.5);
-    color: rgba(236, 224, 255, 0.96);
-    background: rgba(142, 104, 255, 0.2);
+    border-color: rgba(142, 180, 236, 0.38);
+    color: rgba(220, 233, 252, 0.9);
+    background: rgba(57, 84, 126, 0.22);
 }
 
 .aux-camera-view__canvas {
@@ -1960,7 +2015,7 @@ html[data-app-view="selector"] .mission-loading-overlay,
 
 .aux-camera-chip:hover {
     border-color: rgba(153, 196, 255, 0.78);
-    background: rgba(40, 84, 151, 0.72);
+    background: rgba(77, 141, 255, 0.18);
 }
 
 .aux-camera-chip--composer-teaser {
@@ -2209,10 +2264,11 @@ html[data-app-view="selector"] .mission-loading-overlay,
 }
 
 .timeline-dock__track-toggle[aria-pressed="true"] {
-    border-color: rgba(125, 191, 255, 0.82);
-    background: rgba(48, 93, 156, 0.74);
-    color: rgba(248, 252, 255, 1);
-    box-shadow: 0 0 12px rgba(84, 160, 255, 0.2);
+    border-color: rgba(120, 170, 255, 0.72);
+    background: rgba(77, 141, 255, 0.22);
+    color: var(--header-pill-current-color);
+    box-shadow: 0 0 12px rgba(84, 160, 255, 0.16);
+    text-shadow: 0 0 10px rgba(127, 227, 255, 0.22);
 }
 
 .timeline-dock__track-toggle:disabled,
@@ -3268,11 +3324,19 @@ body:has(#timeline-dock.timeline-dock--media-track-visible) #control-panel {
 
 .controls-cluster--speed {
     border-color: rgba(255, 255, 255, 0.14);
+    border-radius: 999px;
+    background: rgba(10, 18, 32, 0.42);
 }
 
-.controls-cluster--modes,
-.controls-cluster--help {
+.controls-cluster--modes {
     border-color: rgba(255, 255, 255, 0.12);
+    border-radius: 999px;
+    background: rgba(10, 18, 32, 0.42);
+}
+
+.controls-cluster--help {
+    border-color: rgba(255, 255, 255, 0.08);
+    background: rgba(15, 23, 36, 0.06);
 }
 
 .button,
@@ -3347,7 +3411,22 @@ body:has(#timeline-dock.timeline-dock--media-track-visible) #control-panel {
 
 #landingbutton,
 #joyridebutton {
-    background: rgba(255, 255, 255, 0.06);
+    border-radius: 999px;
+    background: transparent;
+}
+
+#landingbutton:hover,
+#joyridebutton:hover {
+    background: rgba(45, 75, 125, 0.28);
+}
+
+#landingbutton.is-active,
+#joyridebutton.is-active,
+#landingbutton[aria-pressed="true"],
+#joyridebutton[aria-pressed="true"] {
+    border-color: rgba(120, 170, 255, 0.72);
+    background: rgba(77, 141, 255, 0.22);
+    color: var(--header-pill-current-color);
 }
 
 .burnbutton {
@@ -4508,8 +4587,9 @@ table {
     }
 
     body.mobile-shell-enabled .mobile-shell__unit-btn.is-active {
-        background: rgba(255, 218, 130, 0.18);
-        color: rgba(255, 232, 174, 0.98);
+        background: rgba(77, 141, 255, 0.22);
+        color: var(--header-pill-current-color);
+        text-shadow: 0 0 10px rgba(127, 227, 255, 0.22);
     }
 
     body.mobile-shell-enabled .mobile-shell__phase {
@@ -4696,8 +4776,9 @@ table {
     }
 
     body.mobile-shell-enabled .mobile-shell__control-btn.is-active {
-        border-color: rgba(255, 218, 130, 0.8);
-        color: rgba(255, 232, 173, 0.95);
+        border-color: rgba(120, 170, 255, 0.72);
+        color: var(--header-pill-current-color);
+        background: rgba(77, 141, 255, 0.22);
     }
 
     body.mobile-shell-enabled .mobile-shell__control-btn:disabled,
@@ -4710,28 +4791,33 @@ table {
     body.mobile-shell-enabled .mobile-shell__views-subtabs {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 6px;
+        gap: 1px;
         margin-bottom: 7px;
+        padding: 1px;
+        border: 1px solid rgba(100, 130, 180, 0.44);
+        border-radius: 999px;
+        background: rgba(10, 18, 32, 0.72);
     }
 
     body.mobile-shell-enabled .mobile-shell__view-btn {
-        min-height: 34px;
-        border-radius: 8px;
-        border: 1px solid rgba(121, 171, 255, 0.25);
-        background: rgba(24, 42, 71, 0.65);
-        color: rgba(225, 238, 255, 0.95);
+        min-height: 26px;
+        border-radius: 999px;
+        border: 1px solid transparent;
+        background: transparent;
+        color: #aebbd2;
         font-size: 8px;
-        font-weight: 600;
-        letter-spacing: 0.03em;
+        font-weight: 700;
+        letter-spacing: 0;
         text-transform: uppercase;
         line-height: 1.2;
-        padding: 4px 3px;
+        padding: 3px 4px;
     }
 
     body.mobile-shell-enabled .mobile-shell__view-btn.is-active {
-        border-color: rgba(255, 218, 130, 0.8);
-        color: rgba(255, 232, 173, 0.98);
-        background: rgba(35, 54, 86, 0.72);
+        border-color: rgba(120, 170, 255, 0.72);
+        color: var(--header-pill-current-color);
+        background: rgba(77, 141, 255, 0.22);
+        text-shadow: 0 0 10px rgba(127, 227, 255, 0.22);
     }
 
     body.mobile-shell-enabled .mobile-shell__views-fov {
@@ -4764,9 +4850,9 @@ table {
     }
 
     body.mobile-shell-enabled .mobile-shell__views-fov-auto.is-active {
-        border-color: rgba(255, 218, 130, 0.8);
-        color: rgba(255, 232, 173, 0.98);
-        background: rgba(35, 54, 86, 0.72);
+        border-color: rgba(120, 170, 255, 0.72);
+        color: var(--header-pill-current-color);
+        background: rgba(77, 141, 255, 0.22);
     }
 
     body.mobile-shell-enabled .mobile-shell__views-fov-slider {
@@ -4807,9 +4893,9 @@ table {
     }
 
     body.mobile-shell-enabled .mobile-shell__views-farside-toggle.is-active {
-        border-color: rgba(255, 218, 130, 0.8);
-        color: rgba(255, 232, 173, 0.98);
-        background: rgba(35, 54, 86, 0.72);
+        border-color: rgba(120, 170, 255, 0.72);
+        color: var(--header-pill-current-color);
+        background: rgba(77, 141, 255, 0.22);
     }
 
     body.mobile-shell-enabled .mobile-shell__views-visibility-summary {
@@ -4863,27 +4949,32 @@ table {
     body.mobile-shell-enabled .mobile-shell__compose-lock-buttons {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 6px;
+        gap: 1px;
+        padding: 1px;
+        border: 1px solid rgba(100, 130, 180, 0.44);
+        border-radius: 999px;
+        background: rgba(10, 18, 32, 0.72);
     }
 
     body.mobile-shell-enabled .mobile-shell__compose-lock-btn {
-        min-height: 26px;
-        border-radius: 8px;
-        border: 1px solid rgba(121, 171, 255, 0.25);
-        background: rgba(24, 42, 71, 0.65);
-        color: rgba(225, 238, 255, 0.95);
+        min-height: 24px;
+        border-radius: 999px;
+        border: 1px solid transparent;
+        background: transparent;
+        color: #aebbd2;
         font-size: 8px;
-        font-weight: 600;
-        letter-spacing: 0.03em;
+        font-weight: 700;
+        letter-spacing: 0;
         text-transform: uppercase;
         line-height: 1.2;
-        padding: 4px 3px;
+        padding: 3px 4px;
     }
 
     body.mobile-shell-enabled .mobile-shell__compose-lock-btn.is-active {
-        border-color: rgba(255, 218, 130, 0.8);
-        color: rgba(255, 232, 173, 0.98);
-        background: rgba(35, 54, 86, 0.72);
+        border-color: rgba(120, 170, 255, 0.72);
+        color: var(--header-pill-current-color);
+        background: rgba(77, 141, 255, 0.22);
+        text-shadow: 0 0 10px rgba(127, 227, 255, 0.22);
     }
 
     body.mobile-shell-enabled .mobile-shell__compose-hint {
@@ -5046,8 +5137,10 @@ table {
     }
 
     body.mobile-shell-enabled .mobile-shell__nav-btn.is-active {
-        border-color: rgba(255, 218, 130, 0.72);
-        color: rgba(255, 230, 167, 0.98);
+        border-color: rgba(120, 170, 255, 0.72);
+        background: rgba(77, 141, 255, 0.18);
+        color: var(--header-pill-current-color);
+        text-shadow: 0 0 10px rgba(127, 227, 255, 0.22);
     }
 
     body.mobile-shell-enabled .mobile-shell__nav-btn[disabled] {

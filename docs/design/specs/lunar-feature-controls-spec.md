@@ -8,49 +8,49 @@ The Lunar Features pill opens a top-layer panel in both the main mission view an
 
 The panel has three tabs:
 
-- Show All
+- Show Always
 - Hover
 - Search
 
 Tab-specific controls are structurally mounted only in the active tab. A control removed from a tab should not remain in that tab's panel body as a hidden element.
 
-Show All and Hover each own an independent filter set. Changing one tab must not mutate the other tab's diameter range or feature-type filters.
+Show Always and Hover each own an independent filter set. Changing one tab must not mutate the other tab's diameter range or feature-type filters.
 
-## Show All Tab
+## Show Always Tab
 
-Show All controls always-visible lunar feature annotations.
+Show Always controls always-visible lunar feature annotations.
 
-- Presets: None, Default, All.
+- Presets: Off, Recommended, All.
 - Diameter range remains visible.
-- Filters remains visible and opens feature-type filters.
+- Feature-type filters remain visible as grouped tabs: Popular, Lines & Relief, Large Regions, and Satellite Features.
 - Search controls are not mounted in this tab.
 - Display controls are not mounted in this tab.
 
-None disables Show All. Default and All enable Show All and apply the selected preset.
+Off disables Show Always. Recommended and All enable Show Always and apply the selected preset.
 
 ## Hover Tab
 
 Hover controls pointer inspection of lunar features.
 
-- Presets: None, Default, All.
+- Presets: Off, Recommended, All.
 - Diameter range remains visible.
-- Filters remains visible and opens feature-type filters.
+- Feature-type filters remain visible as grouped tabs: Popular, Lines & Relief, Large Regions, and Satellite Features.
 - Search controls are not mounted in this tab.
 - Display controls are not mounted in this tab.
 
-None disables Hover. Default and All enable Hover and apply the selected preset.
+Off disables Hover. Recommended and All enable Hover and apply the selected preset.
 
-If Hover targets a feature that is already visible from Show All or Search, the existing annotation is highlighted instead of drawing duplicate labels or perimeter rings. The highlight uses a thicker boundary and slightly larger label.
+If Hover targets a feature that is already visible from Show Always or Search, the existing annotation is highlighted instead of drawing duplicate labels or perimeter rings. The highlight uses a thicker boundary and slightly larger label.
 
 ## Search Tab
 
-Search is additive. Search results are displayed on top of the annotations implied by Show All and Hover.
+Search is additive. Search results are displayed on top of the annotations implied by Show Always and Hover.
 
 - Search shows only the search field and the search results panel.
-- Search does not mount the preset buttons, diameter range, Filters control, or Display controls.
+- Search does not mount the preset buttons, diameter range, feature-type filters, or Display controls.
 - Search result checkboxes pin or unpin matching features for the current search query.
 
-If Search selects a feature already visible from Show All, the existing annotation is highlighted instead of drawing duplicate labels or perimeter rings.
+If Search selects a feature already visible from Show Always, the existing annotation is highlighted instead of drawing duplicate labels or perimeter rings.
 
 ## Rendering Rules
 

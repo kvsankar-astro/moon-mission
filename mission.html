@@ -1230,29 +1230,44 @@
                             aria-label="Close lunar feature controls"
                         >Close</button>
                     </div>
-                    <div class="lunar-crater-controls-panel__toggles" role="group" aria-label="Filter set">
+                    <div class="lunar-crater-controls-panel__toggles" role="tablist" aria-label="Lunar feature modes">
                         <button
                             id="lunar-crater-filter-scope-show-all"
                             type="button"
                             class="lunar-crater-controls-panel__button is-active"
-                            aria-pressed="true"
-                            title="Edit the Show All filter set"
-                        >Show All</button>
+                            role="tab"
+                            aria-selected="true"
+                            aria-controls="lunar-crater-tab-panel"
+                            tabindex="0"
+                            title="Edit the Show Always filter set"
+                        >Show Always</button>
                         <button
                             id="lunar-crater-filter-scope-hover"
                             type="button"
                             class="lunar-crater-controls-panel__button"
-                            aria-pressed="false"
+                            role="tab"
+                            aria-selected="false"
+                            aria-controls="lunar-crater-tab-panel"
+                            tabindex="-1"
                             title="Edit the Hover filter set"
                         >Hover</button>
                         <button
                             id="lunar-crater-filter-scope-search"
                             type="button"
                             class="lunar-crater-controls-panel__button"
-                            aria-pressed="false"
+                            role="tab"
+                            aria-selected="false"
+                            aria-controls="lunar-crater-tab-panel"
+                            tabindex="-1"
                             title="Search and pin lunar feature annotations"
                         >Search</button>
                     </div>
+                    <div
+                        id="lunar-crater-tab-panel"
+                        class="lunar-crater-controls-panel__tab-panel"
+                        role="tabpanel"
+                        aria-labelledby="lunar-crater-filter-scope-show-all"
+                    >
                     <div id="lunar-crater-presets" class="lunar-crater-controls-panel__presets"></div>
                     <div
                         id="lunar-crater-search-wrap"
@@ -1336,13 +1351,7 @@
                         class="lunar-crater-controls-panel__search-results"
                         hidden
                     ></div>
-                    <button
-                        id="lunar-crater-filter-toggle"
-                        type="button"
-                        class="lunar-crater-controls-panel__filter-toggle"
-                        aria-expanded="false"
-                        aria-controls="lunar-crater-type-filters"
-                    >Filters</button>
+                    </div>
                 </div>
                 <div id="header-pill-strip-tertiary" class="header-pill-strip__row header-pill-strip__row--tertiary" aria-label="Utility controls">
                     <span class="header-pill-strip__spacer header-pill-strip__spacer--tertiary" aria-hidden="true"></span>
@@ -1415,26 +1424,26 @@
                             </button>
                         </div>
                     </div>
-                    <div class="header-pill-group header-pill-group--utility" role="group" aria-label="Lunar surface and feature controls">
+                    <div class="header-pill-group header-pill-group--utility" role="group" aria-label="Lunar surface controls">
                         <span class="header-pill-group__label">Lunar</span>
                         <div class="header-pill-segment" role="group" aria-label="Moon surface detail options">
                             <button id="moon-profile-pill-fast" type="button" class="header-pill-segment__btn" aria-pressed="true" title="Use the standard Moon surface asset profile">Standard</button>
                             <button id="moon-profile-pill-quality" type="button" class="header-pill-segment__btn" aria-pressed="false" title="Use the detailed Moon surface asset profile">Detailed</button>
                         </div>
-                        <div class="header-pill-segment" role="group" aria-label="Lunar feature controls">
-                            <button
-                                id="toggle-pill-lunar-craters"
-                                type="button"
-                                class="header-pill-segment__btn"
-                                aria-pressed="false"
-                                aria-expanded="false"
-                                aria-haspopup="dialog"
-                                aria-controls="lunar-crater-controls-panel"
-                                title="Open lunar feature controls"
-                            >
-                                Lunar Features
-                            </button>
-                        </div>
+                    </div>
+                    <div id="lunar-features-pill-wrap" class="header-pill-segment header-pill-segment--single">
+                        <button
+                            id="toggle-pill-lunar-craters"
+                            type="button"
+                            class="header-pill-segment__btn"
+                            aria-pressed="false"
+                            aria-expanded="false"
+                            aria-haspopup="dialog"
+                            aria-controls="lunar-crater-controls-panel"
+                            title="Open lunar feature controls"
+                        >
+                            Lunar Features
+                        </button>
                     </div>
                     <div id="compare-pill-wrap" class="header-pill-segment header-pill-segment--single">
                         <button

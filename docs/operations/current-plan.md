@@ -21,7 +21,7 @@ These items came from the 2026-05-16 context switch. Treat them as queued work, 
 | Fix Media panel overlap with events. | Open; user inputs pending | [performance-workstream.md](performance-workstream.md) |
 | Adjust Earth exposure during lunar eclipse so it cuts down to normal when only Earth is in view. | Done | [../design/specs/frame-and-shoot-lighting-exposure-spec.md](../design/specs/frame-and-shoot-lighting-exposure-spec.md) |
 | Integrate diarization artifacts. | Pending | [artemis2-media-workstream.md](artemis2-media-workstream.md) |
-| Change crater search and filter settings. | Done; tabbed Show All, Hover, and additive Search model implemented | [../design/specs/lunar-feature-controls-spec.md](../design/specs/lunar-feature-controls-spec.md) |
+| Change crater search and filter settings. | Done; tabbed Show Always, Hover, and additive Search model implemented | [../design/specs/lunar-feature-controls-spec.md](../design/specs/lunar-feature-controls-spec.md) |
 | Explore diarization -> LLM -> search and other AI-assisted discovery features. | Open | [artemis2-media-workstream.md](artemis2-media-workstream.md) |
 | Fix play, media, and control bugs. | Open | [performance-workstream.md](performance-workstream.md) |
 | Add attribution page for Hank Green, NASA media files, and other required media/source credits. | Open | [artemis2-media-workstream.md](artemis2-media-workstream.md) |
@@ -32,10 +32,10 @@ These items came from the 2026-05-16 context switch. Treat them as queued work, 
 
 For the crater search/filter settings item, update defaults and UI around two independent display modes:
 
-- Show All: off or filter-based.
+- Show Always: off or filter-based.
 - Hover: off or filter-based.
-- The Show All and Hover filters are separate; changing one should not imply the other.
-- Search is additive and should not duplicate labels or perimeter rings already shown by Show All or Hover.
+- The Show Always and Hover filters are separate; changing one should not imply the other.
+- Search is additive and should not duplicate labels or perimeter rings already shown by Show Always or Hover.
 
 ## Optimization Queue
 

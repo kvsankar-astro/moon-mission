@@ -56,6 +56,11 @@
     --ui-type-title-sm: 16px;
     --ui-tracking-label: 0.05em;
     --ui-tracking-kicker: 0.08em;
+    --header-pill-current-color: #7fe3ff;
+    --header-pill-launcher-color: #b8d48a;
+    --header-pill-launcher-border: rgba(184, 212, 138, 0.58);
+    --header-pill-launcher-bg: rgba(118, 150, 74, 0.16);
+    --ui-config-popover-z: 2147483000;
     --timeline-dock-height: 94px;
     --timeline-dock-offset: 6px;
     --control-panel-visual-height: 0px;
@@ -94,8 +99,10 @@ textarea {
     pointer-events: none;
 }
 
+.header:has(#lunar-crater-controls-panel:not([hidden])),
+.header:has(#guides-controls-panel:not([hidden])),
 .header:has(#surface-points-controls-panel:not([hidden])) {
-    z-index: 2147483000;
+    z-index: var(--ui-config-popover-z);
 }
 
 .navbar {
@@ -258,10 +265,6 @@ textarea {
 #header-pill-strip {
     --header-pill-toggle-lane: 24px;
     --header-pill-group-label-color: rgba(142, 166, 202, 0.72);
-    --header-pill-current-color: #7fe3ff;
-    --header-pill-launcher-color: #b8d48a;
-    --header-pill-launcher-border: rgba(184, 212, 138, 0.58);
-    --header-pill-launcher-bg: rgba(118, 150, 74, 0.16);
     pointer-events: all;
     display: grid;
     grid-template-rows: auto auto auto;
@@ -381,6 +384,13 @@ textarea {
     grid-template-columns: minmax(0, max-content);
 }
 
+.header-pill-group--panels .header-pill-segment {
+    gap: 1px;
+    border-color: rgba(184, 212, 138, 0.22);
+    border-radius: 999px;
+    background: rgba(16, 24, 22, 0.78);
+}
+
 .header-pill-segment__btn {
     height: 21px;
     min-width: 36px;
@@ -396,6 +406,13 @@ textarea {
     text-transform: uppercase;
     cursor: pointer;
     transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease;
+}
+
+.header-pill-group--panels .header-pill-segment__btn,
+.header-pill-segment--single .header-pill-segment__btn,
+.header-pill-segment__btn[aria-haspopup="dialog"],
+.header-pill-segment__btn[aria-controls="lunar-crater-controls-panel"] {
+    border-radius: 999px;
 }
 
 #header-pill-strip:not(.header-pill-strip--groups-expanded) .header-pill-group:not(.header-pill-group--panels):not(:focus-within) .header-pill-segment__btn {
@@ -488,6 +505,21 @@ textarea {
     text-shadow: 0 0 10px rgba(127, 227, 255, 0.3);
 }
 
+.header-toggle-pill[aria-haspopup="dialog"] {
+    color: var(--header-pill-launcher-color);
+    border-color: rgba(184, 212, 138, 0.18);
+    background: rgba(16, 24, 22, 0.78);
+}
+
+.header-toggle-pill[aria-haspopup="dialog"]:hover,
+.header-toggle-pill[aria-haspopup="dialog"].is-open,
+.header-toggle-pill[aria-haspopup="dialog"][aria-expanded="true"] {
+    color: #d9efad;
+    border-color: var(--header-pill-launcher-border);
+    background: var(--header-pill-launcher-bg);
+    text-shadow: 0 0 10px rgba(184, 212, 138, 0.24);
+}
+
 .header-toggle-pill:disabled,
 .header-toggle-pill[aria-disabled="true"] {
     opacity: 0.45;
@@ -498,6 +530,7 @@ textarea {
 }
 
 .header-pill-segment--single .header-pill-segment__btn,
+.header-pill-group--panels .header-pill-segment__btn,
 .header-pill-segment__btn[aria-haspopup="dialog"],
 .header-pill-segment__btn[aria-controls="lunar-crater-controls-panel"] {
     color: var(--header-pill-launcher-color);
@@ -505,6 +538,7 @@ textarea {
 }
 
 .header-pill-segment--single .header-pill-segment__btn:hover,
+.header-pill-group--panels .header-pill-segment__btn:hover,
 .header-pill-segment__btn[aria-haspopup="dialog"]:hover,
 .header-pill-segment__btn[aria-controls="lunar-crater-controls-panel"]:hover {
     color: #d9efad;
@@ -514,6 +548,10 @@ textarea {
 
 .header-pill-segment--single .header-pill-segment__btn.is-open,
 .header-pill-segment--single .header-pill-segment__btn[aria-expanded="true"],
+.header-pill-group--panels .header-pill-segment__btn.is-active,
+.header-pill-group--panels .header-pill-segment__btn[aria-pressed="true"],
+.header-pill-group--panels .header-pill-segment__btn.is-open,
+.header-pill-group--panels .header-pill-segment__btn[aria-expanded="true"],
 .header-pill-segment__btn[aria-haspopup="dialog"].is-open,
 .header-pill-segment__btn[aria-haspopup="dialog"][aria-expanded="true"],
 .header-pill-segment__btn[aria-controls="lunar-crater-controls-panel"].is-open,
@@ -528,7 +566,7 @@ textarea {
     position: absolute;
     top: calc(100% + 4px);
     right: calc(8px + var(--header-pill-toggle-lane));
-    z-index: 2147483001;
+    z-index: calc(var(--ui-config-popover-z) + 1);
     display: grid;
     width: min(360px, calc(100vw - 18px));
     box-sizing: border-box;
@@ -549,7 +587,7 @@ textarea {
     position: absolute;
     top: calc(100% + 4px);
     right: calc(8px + var(--header-pill-toggle-lane));
-    z-index: 43;
+    z-index: calc(var(--ui-config-popover-z) + 1);
     display: grid;
     width: min(360px, calc(100vw - 18px));
     box-sizing: border-box;
@@ -567,7 +605,7 @@ textarea {
     position: fixed;
     top: 0;
     left: 0;
-    z-index: 2147483000;
+    z-index: calc(var(--ui-config-popover-z) + 1);
     display: grid;
     width: min(300px, calc(100vw - 18px));
     box-sizing: border-box;
@@ -585,7 +623,7 @@ textarea {
     position: absolute;
     top: calc(100% + 4px);
     left: 0;
-    z-index: 1000;
+    z-index: calc(var(--ui-config-popover-z) + 1);
     width: min(300px, calc(100vw - 18px));
 }
 
@@ -643,7 +681,9 @@ textarea {
 .surface-points-controls-panel__section {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 6px;
+    gap: 4px 6px;
+    padding-top: 3px;
+    border-top: 1px solid rgba(121, 171, 255, 0.12);
 }
 
 .surface-points-controls-panel__section:has(.surface-points-controls-panel__option:only-of-type) {
@@ -660,14 +700,14 @@ textarea {
     display: flex;
     align-items: center;
     gap: 7px;
-    min-height: 24px;
-    padding: 4px 6px;
-    border: 1px solid rgba(100, 130, 180, 0.26);
+    min-height: 23px;
+    padding: 3px 6px;
+    border: 1px solid rgba(100, 130, 180, 0.18);
     border-radius: 6px;
-    background: rgba(5, 10, 17, 0.68);
-    color: #dbe6f7;
+    background: rgba(5, 10, 17, 0.42);
+    color: rgba(219, 230, 247, 0.9);
     font-size: 10px;
-    font-weight: 700;
+    font-weight: 600;
     cursor: pointer;
 }
 
@@ -679,7 +719,7 @@ textarea {
 .guides-controls-panel__option:hover,
 .surface-points-controls-panel__option:hover {
     border-color: rgba(160, 196, 255, 0.48);
-    background: rgba(30, 52, 86, 0.62);
+    background: rgba(30, 52, 86, 0.46);
 }
 
 .guides-controls-panel__option input,
@@ -750,21 +790,21 @@ textarea {
 .lunar-crater-controls-panel__toggles {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
-    gap: 1px;
-    padding: 2px;
-    border: 1px solid rgba(100, 130, 180, 0.36);
-    border-radius: 8px;
-    background: rgba(5, 10, 17, 0.8);
+    gap: 3px;
+    padding: 0;
+    border-bottom: 1px solid rgba(121, 171, 255, 0.28);
+    background: transparent;
 }
 
 .lunar-crater-controls-panel__button {
-    height: 25px;
+    height: 27px;
     min-width: 0;
     padding: 0 5px;
-    border: 0;
-    border-radius: 6px;
-    background: transparent;
-    color: #b9c5d8;
+    border: 1px solid rgba(121, 171, 255, 0.28);
+    border-bottom: 0;
+    border-radius: 7px 7px 0 0;
+    background: rgba(6, 13, 23, 0.64);
+    color: rgba(206, 220, 244, 0.78);
     font-size: var(--ui-type-label);
     font-weight: 700;
     letter-spacing: 0;
@@ -774,7 +814,7 @@ textarea {
 
 .lunar-crater-controls-panel__button:hover {
     color: #eef5ff;
-    background: rgba(45, 75, 125, 0.34);
+    background: rgba(28, 50, 85, 0.78);
 }
 
 .lunar-crater-controls-panel__button:focus-visible {
@@ -782,9 +822,17 @@ textarea {
     outline-offset: 1px;
 }
 
-.lunar-crater-controls-panel__button[aria-pressed="true"] {
-    background: var(--ui-annotation-accent-soft);
+.lunar-crater-controls-panel__button[aria-selected="true"] {
+    border-color: rgba(150, 192, 255, 0.58);
+    background: rgba(38, 68, 112, 0.98);
     color: #eef5ff;
+    box-shadow: inset 0 -2px 0 rgba(176, 210, 255, 0.72);
+}
+
+.lunar-crater-controls-panel__tab-panel {
+    display: grid;
+    gap: 7px;
+    min-width: 0;
 }
 
 .lunar-crater-controls-panel__search {
@@ -824,68 +872,51 @@ textarea {
 }
 
 .lunar-crater-controls-panel__presets {
-    display: grid;
+    display: inline-grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 4px;
+    gap: 1px;
+    width: 100%;
+    padding: 1px;
+    border: 1px solid rgba(100, 130, 180, 0.44);
+    border-radius: 999px;
+    background: rgba(10, 18, 32, 0.82);
+    box-shadow: 0 5px 14px rgba(0, 0, 0, 0.24);
 }
 
 .lunar-crater-controls-panel__preset {
-    border: 1px solid rgba(121, 171, 255, 0.34);
-    border-radius: 6px;
-    background: rgba(12, 24, 44, 0.9);
-    color: #dce8ff;
-    font-size: 8px;
+    min-height: 21px;
+    min-width: 0;
+    padding: 0 7px;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    background: transparent;
+    color: #aebbd2;
+    font-family: var(--ui-font-condensed);
+    font-size: var(--ui-type-label);
     font-weight: 700;
+    letter-spacing: 0;
+    line-height: 1;
     text-transform: uppercase;
-    min-height: 20px;
     cursor: pointer;
+    transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease;
 }
 
 .lunar-crater-controls-panel__preset:hover {
-    border-color: rgba(160, 196, 255, 0.62);
-    background: rgba(38, 68, 112, 0.96);
+    color: #dbe7ff;
+    background: rgba(45, 75, 125, 0.28);
 }
 
 .lunar-crater-controls-panel__preset[aria-pressed="true"],
 .lunar-crater-controls-panel__preset.is-active {
-    border-color: rgba(174, 207, 255, 0.78);
-    background: rgba(52, 84, 132, 0.98);
-    color: #f2f7ff;
-}
-
-.lunar-crater-controls-panel__filter-toggle {
-    width: 100%;
-    min-height: 23px;
-    border: 1px solid rgba(121, 171, 255, 0.34);
-    border-radius: 6px;
-    background: rgba(12, 24, 44, 0.9);
-    color: #dce8ff;
-    font-size: 8px;
-    font-weight: 700;
-    text-transform: uppercase;
-    cursor: pointer;
-}
-
-.lunar-crater-controls-panel__filter-toggle:hover {
-    border-color: rgba(160, 196, 255, 0.62);
-    background: rgba(38, 68, 112, 0.96);
-}
-
-.lunar-crater-controls-panel__filter-toggle:focus-visible {
-    outline: 2px solid var(--ui-focus);
-    outline-offset: 1px;
-}
-
-.lunar-crater-controls-panel__filter-toggle[aria-expanded="true"],
-.lunar-crater-controls-panel__filter-toggle.is-active {
-    border-color: rgba(174, 207, 255, 0.78);
-    background: rgba(52, 84, 132, 0.98);
-    color: #f2f7ff;
+    border-color: rgba(120, 170, 255, 0.72);
+    background: rgba(77, 141, 255, 0.22);
+    color: var(--header-pill-current-color);
+    text-shadow: 0 0 10px rgba(127, 227, 255, 0.3);
 }
 
 .lunar-crater-controls-panel__type-filters {
     display: grid;
-    gap: 8px;
+    gap: 5px;
     padding-right: 2px;
 }
 
@@ -893,46 +924,57 @@ textarea {
     display: none !important;
 }
 
-.lunar-crater-controls-panel__type-group {
+.lunar-crater-controls-panel__type-group-tabs {
     display: grid;
-    gap: 5px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+    padding: 0 1px;
+    border-bottom: 1px solid rgba(121, 171, 255, 0.18);
 }
 
-.lunar-crater-controls-panel__type-group-title {
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 5px;
-    width: 100%;
-    margin: 0;
-    padding: 0;
+.lunar-crater-controls-panel__type-group-tab {
+    min-height: 21px;
+    padding: 0 0 4px;
     border: 0;
+    border-bottom: 2px solid transparent;
+    border-radius: 0;
     background: transparent;
-    text-align: left;
-    color: rgba(188, 208, 241, 0.82);
-    font-size: 8px;
+    color: rgba(188, 208, 241, 0.72);
+    font-size: 7px;
     font-weight: 700;
-    letter-spacing: 0.04em;
+    line-height: 1.08;
+    text-align: center;
     text-transform: uppercase;
+    white-space: normal;
     cursor: pointer;
 }
 
-.lunar-crater-controls-panel__type-group-title::before {
-    content: "▸";
-    display: inline-block;
-    width: 8px;
-    color: rgba(188, 208, 241, 0.9);
-    font-size: 10px;
-    line-height: 1;
+.lunar-crater-controls-panel__type-group-tab:hover {
+    color: #eef5ff;
+    background: transparent;
 }
 
-.lunar-crater-controls-panel__type-group-title[aria-expanded="true"]::before {
-    content: "▾";
-}
-
-.lunar-crater-controls-panel__type-group-title:focus-visible {
+.lunar-crater-controls-panel__type-group-tab:focus-visible {
     outline: 2px solid var(--ui-focus);
-    outline-offset: 2px;
+    outline-offset: 1px;
+}
+
+.lunar-crater-controls-panel__type-group-tab[aria-selected="true"] {
+    border-bottom-color: rgba(174, 207, 255, 0.88);
+    background: transparent;
+    color: #f2f7ff;
+}
+
+.lunar-crater-controls-panel__type-group {
+    display: grid;
+    gap: 5px;
+    padding: 4px 1px 0;
+    border: 0;
+    background: transparent;
+}
+
+.lunar-crater-controls-panel__type-group[data-active="false"] {
+    display: none;
 }
 
 .lunar-crater-controls-panel__type-group-rows {
@@ -1502,7 +1544,11 @@ textarea {
 .camera-pill-group {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 3px;
+    gap: 1px;
+    padding: 1px;
+    border: 1px solid rgba(100, 130, 180, 0.44);
+    border-radius: 999px;
+    background: rgba(10, 18, 32, 0.72);
 }
 
 .camera-pill-group--plane {
@@ -1520,11 +1566,12 @@ textarea {
     justify-content: center;
     min-height: 22px;
     padding: 2px 6px;
-    border-radius: var(--ui-radius-sm);
-    border: 1px solid var(--ui-border-1);
-    background: rgba(255, 255, 255, 0.05);
-    color: var(--ui-text-2);
+    border-radius: 999px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: #aebbd2;
     font-size: 9px;
+    font-weight: 700;
     line-height: 1.1;
     cursor: pointer;
     transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
@@ -1555,9 +1602,10 @@ textarea {
 }
 
 .camera-pill:has(input:checked) {
-    background: rgba(77, 141, 255, 0.18);
-    border-color: rgba(110, 162, 255, 0.88);
-    color: #ecf3ff;
+    background: rgba(77, 141, 255, 0.22);
+    border-color: rgba(120, 170, 255, 0.72);
+    color: var(--header-pill-current-color);
+    text-shadow: 0 0 10px rgba(127, 227, 255, 0.22);
 }
 
 .camera-pill:has(input:focus-visible) {

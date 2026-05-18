@@ -117,13 +117,13 @@ function syncLunarCraterCatalogStatus(elements = {}) {
 const LUNAR_FEATURE_PRESETS = Object.freeze([
     {
         id: LUNAR_FEATURE_PRESET_IDS.NONE,
-        label: "None",
-        title: "Disable all lunar feature classes",
+        label: "Off",
+        title: "Disable this lunar feature mode",
     },
     {
         id: LUNAR_FEATURE_PRESET_IDS.DEFAULT,
-        label: "Default",
-        title: "Show the main Lunar Features group",
+        label: "Recommended",
+        title: "Show the recommended Lunar Features group",
     },
     {
         id: LUNAR_FEATURE_PRESET_IDS.ALL,
@@ -150,12 +150,12 @@ const FEATURE_TYPE_DISPLAY_ORDER = Object.freeze([
 const FEATURE_TYPE_GROUPS = Object.freeze([
     {
         id: "popular",
-        label: "Popular Highlights",
+        label: "Popular",
         types: DEFAULT_LUNAR_FEATURE_TYPES,
     },
     {
         id: "structures",
-        label: "Lines And Relief",
+        label: "Lines & Relief",
         types: ["Vallis, valles", "Dorsum, dorsa", "Catena, catenae", "Promontorium, promontoria"],
     },
     {
@@ -165,7 +165,7 @@ const FEATURE_TYPE_GROUPS = Object.freeze([
     },
     {
         id: "reference",
-        label: "Reference Labels",
+        label: "Satellite Features",
         types: ["Satellite Feature"],
     },
 ]);
@@ -437,7 +437,6 @@ function cacheLunarCraterPanelNodes(elements = {}) {
         "searchWrap",
         "searchInput",
         "searchResultsContainer",
-        "filterToggle",
         "typeFilterContainer",
         "rangeLabel",
         "rangeStack",
@@ -457,23 +456,24 @@ function cacheLunarCraterPanelNodes(elements = {}) {
 function syncLunarCraterTabBody(elements = {}, scope = LUNAR_CRATER_FILTER_SCOPE_SHOW_ALL) {
     const panel = elements.panel;
     if (!panel) return;
+    const tabPanel = elements.tabPanelBody || panel;
     cacheLunarCraterPanelNodes(elements);
     const isSearchScope = normalizeFilterScope(scope) === LUNAR_CRATER_FILTER_SCOPE_SEARCH;
     if (isSearchScope) {
-        const alreadyMounted = elements.searchWrap?.parentNode === panel &&
-            elements.searchResultsContainer?.parentNode === panel &&
-            elements.presetContainer?.parentNode !== panel &&
-            elements.rangeLabel?.parentNode !== panel &&
-            elements.filterToggle?.parentNode !== panel;
+        const alreadyMounted = elements.searchWrap?.parentNode === tabPanel &&
+            elements.searchResultsContainer?.parentNode === tabPanel &&
+            elements.presetContainer?.parentNode !== tabPanel &&
+            elements.rangeLabel?.parentNode !== tabPanel &&
+            elements.typeFilterContainer?.parentNode !== tabPanel;
         if (alreadyMounted) {
             return;
         }
     } else {
-        const alreadyMounted = elements.presetContainer?.parentNode === panel &&
-            elements.rangeLabel?.parentNode === panel &&
-            elements.filterToggle?.parentNode === panel &&
-            elements.searchWrap?.parentNode !== panel &&
-            elements.searchResultsContainer?.parentNode !== panel;
+        const alreadyMounted = elements.presetContainer?.parentNode === tabPanel &&
+            elements.rangeLabel?.parentNode === tabPanel &&
+            elements.typeFilterContainer?.parentNode === tabPanel &&
+            elements.searchWrap?.parentNode !== tabPanel &&
+            elements.searchResultsContainer?.parentNode !== tabPanel;
         if (alreadyMounted) {
             return;
         }
@@ -486,7 +486,6 @@ function syncLunarCraterTabBody(elements = {}, scope = LUNAR_CRATER_FILTER_SCOPE
         elements.typeFilterContainer,
         elements.statusRow,
         elements.nudge,
-        elements.filterToggle,
     ];
     const searchElements = [
         elements.searchWrap,
@@ -496,15 +495,15 @@ function syncLunarCraterTabBody(elements = {}, scope = LUNAR_CRATER_FILTER_SCOPE
         for (const element of filterElements) {
             removePanelChild(element);
         }
-        appendPanelChild(panel, elements.searchWrap);
-        appendPanelChild(panel, elements.searchResultsContainer);
+        appendPanelChild(tabPanel, elements.searchWrap);
+        appendPanelChild(tabPanel, elements.searchResultsContainer);
         return;
     }
     for (const element of searchElements) {
         removePanelChild(element);
     }
     for (const element of filterElements) {
-        appendPanelChild(panel, element);
+        appendPanelChild(tabPanel, element);
     }
 }
 
@@ -624,7 +623,7 @@ function syncLunarCraterCountStatus(elements = {}, state = {}) {
     }
     let message = "";
     if (normalized.lunarCraterShowAllEnabled !== true && normalized.lunarCraterHoverEnabled !== true) {
-        message = "Filters ready. Enable Show All or Hover below.";
+        message = "Filters ready. Choose Recommended or All to enable Show Always or Hover.";
     } else
     if (
         normalized.lunarCraterShowAllEnabled === true &&
@@ -800,42 +799,68 @@ function rehydrateTypeFilterControls(elements = {}, { panel, container, presetCo
 
 function getLunarFeatureGroupEntries(container) {
     const groups = container?.querySelectorAll?.(".lunar-crater-controls-panel__type-group") || [];
-    return Array.from(groups).map((groupContainer) => ({
-        groupContainer,
-        groupTitle: groupContainer.querySelector?.(".lunar-crater-controls-panel__type-group-title") || null,
-        groupRows: groupContainer.querySelector?.(".lunar-crater-controls-panel__type-group-rows") || null,
-    })).filter((entry) => entry.groupTitle && entry.groupRows);
+    const tabsById = new Map(
+        Array.from(container?.querySelectorAll?.(".lunar-crater-controls-panel__type-group-tab") || [])
+            .map((groupTab) => [`${groupTab?.dataset?.groupId || ""}`, groupTab]),
+    );
+    return Array.from(groups).map((groupContainer) => {
+        const groupId = `${groupContainer?.dataset?.groupId || ""}`;
+        return {
+            groupContainer,
+            groupTab: tabsById.get(groupId) || null,
+            groupRows: groupContainer.querySelector?.(".lunar-crater-controls-panel__type-group-rows") || null,
+        };
+    }).filter((entry) => entry.groupTab && entry.groupRows);
 }
 
-function setExpandedLunarFeatureGroup(container, targetId = null) {
+function setActiveLunarFeatureGroup(container, targetId = null) {
     for (const entry of getLunarFeatureGroupEntries(container)) {
         const groupId = `${entry.groupContainer?.dataset?.groupId || ""}`;
-        const expanded = Boolean(targetId && groupId === targetId);
-        entry.groupContainer.dataset.expanded = expanded ? "true" : "false";
-        entry.groupRows.hidden = !expanded;
-        entry.groupTitle.setAttribute("aria-expanded", expanded ? "true" : "false");
+        const active = Boolean(targetId && groupId === targetId);
+        entry.groupContainer.dataset.active = active ? "true" : "false";
+        entry.groupRows.hidden = !active;
+        entry.groupTab.setAttribute("aria-selected", active ? "true" : "false");
+        entry.groupTab.setAttribute("tabindex", active ? "0" : "-1");
     }
 }
 
-function bindLunarFeatureGroupAccordion(container, { openFirst = false } = {}) {
+function bindLunarFeatureGroupTabs(container, { openFirst = false } = {}) {
     if (!container) return;
     const entries = getLunarFeatureGroupEntries(container);
-    if (openFirst && entries.length > 0) {
+    const hasActiveGroup = entries.some((entry) => entry.groupContainer?.dataset?.active === "true");
+    if ((openFirst || !hasActiveGroup) && entries.length > 0) {
         const firstGroupId = `${entries[0].groupContainer?.dataset?.groupId || ""}`;
-        setExpandedLunarFeatureGroup(container, firstGroupId || null);
+        setActiveLunarFeatureGroup(container, firstGroupId || null);
     }
-    if (container.dataset.lunarFeatureAccordionBound === "true") {
+    if (container.dataset.lunarFeatureTabsBound === "true") {
         return;
     }
     container.addEventListener("click", (event) => {
-        const title = event.target?.closest?.(".lunar-crater-controls-panel__type-group-title");
-        if (!title || !container.contains(title)) return;
-        const groupContainer = title.closest?.(".lunar-crater-controls-panel__type-group");
-        const groupId = `${groupContainer?.dataset?.groupId || ""}`;
-        const currentlyExpanded = groupContainer?.dataset?.expanded === "true";
-        setExpandedLunarFeatureGroup(container, currentlyExpanded ? null : groupId);
+        const tab = event.target?.closest?.(".lunar-crater-controls-panel__type-group-tab");
+        if (!tab || !container.contains(tab)) return;
+        setActiveLunarFeatureGroup(container, `${tab?.dataset?.groupId || ""}` || null);
     });
-    container.dataset.lunarFeatureAccordionBound = "true";
+    container.addEventListener("keydown", (event) => {
+        const tab = event.target?.closest?.(".lunar-crater-controls-panel__type-group-tab");
+        if (!tab || !container.contains(tab)) return;
+        const tabs = Array.from(container.querySelectorAll?.(".lunar-crater-controls-panel__type-group-tab") || []);
+        const currentIndex = tabs.indexOf(tab);
+        if (currentIndex < 0) return;
+        let nextIndex = currentIndex;
+        if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+            nextIndex = (currentIndex + 1) % tabs.length;
+        } else
+        if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+            nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+        } else {
+            return;
+        }
+        event.preventDefault();
+        const nextTab = tabs[nextIndex];
+        setActiveLunarFeatureGroup(container, `${nextTab?.dataset?.groupId || ""}` || null);
+        nextTab?.focus?.();
+    });
+    container.dataset.lunarFeatureTabsBound = "true";
 }
 
 function ensureTypeFilterControls(elements = {}) {
@@ -865,7 +890,7 @@ function ensureTypeFilterControls(elements = {}) {
     }
     if (container.dataset.lunarFeatureTypesBuilt === "true") {
         rehydrateTypeFilterControls(elements, { panel, container, presetContainer });
-        bindLunarFeatureGroupAccordion(container);
+        bindLunarFeatureGroupTabs(container);
         return;
     }
     while (presetContainer?.firstChild) {
@@ -910,22 +935,39 @@ function ensureTypeFilterControls(elements = {}) {
         });
     }
 
+    const groupTabs = panel.ownerDocument?.createElement?.("div")
+        || document.createElement("div");
+    groupTabs.className = "lunar-crater-controls-panel__type-group-tabs";
+    groupTabs.setAttribute("role", "tablist");
+    groupTabs.setAttribute("aria-label", "Feature type groups");
+    container.appendChild(groupTabs);
+
     for (const group of groupedStats) {
         if (!Array.isArray(group.stats) || group.stats.length === 0) {
             continue;
         }
+        const groupId = `${group.id || ""}`;
+        const groupControlIdPrefix = `${container.id || "lunar-feature-type-filters"}-${groupId}`;
+        const groupTab = panel.ownerDocument?.createElement?.("button")
+            || document.createElement("button");
+        groupTab.id = `${groupControlIdPrefix}-tab`;
+        groupTab.type = "button";
+        groupTab.className = "lunar-crater-controls-panel__type-group-tab";
+        groupTab.dataset.groupId = groupId;
+        groupTab.setAttribute("role", "tab");
+        groupTab.setAttribute("aria-controls", `${groupControlIdPrefix}-panel`);
+        groupTab.setAttribute("aria-selected", "false");
+        groupTab.setAttribute("tabindex", "-1");
+        groupTab.textContent = group.label || "";
+        groupTabs.appendChild(groupTab);
+
         const groupContainer = panel.ownerDocument?.createElement?.("section")
             || document.createElement("section");
+        groupContainer.id = `${groupControlIdPrefix}-panel`;
         groupContainer.className = "lunar-crater-controls-panel__type-group";
-        groupContainer.dataset.groupId = `${group.id || ""}`;
-
-        const groupTitle = panel.ownerDocument?.createElement?.("button")
-            || document.createElement("button");
-        groupTitle.type = "button";
-        groupTitle.className = "lunar-crater-controls-panel__type-group-title";
-        groupTitle.textContent = group.label || "";
-        groupTitle.setAttribute("aria-expanded", "false");
-        groupContainer.appendChild(groupTitle);
+        groupContainer.dataset.groupId = groupId;
+        groupContainer.setAttribute("role", "tabpanel");
+        groupContainer.setAttribute("aria-labelledby", groupTab.id);
 
         const groupRows = panel.ownerDocument?.createElement?.("div")
             || document.createElement("div");
@@ -933,85 +975,85 @@ function ensureTypeFilterControls(elements = {}) {
         groupRows.hidden = true;
 
         for (const stats of group.stats) {
-        const row = panel.ownerDocument?.createElement?.("div")
-            || document.createElement("div");
-        row.className = "lunar-crater-controls-panel__type-row";
-        row.dataset.featureType = stats.featureType;
+            const row = panel.ownerDocument?.createElement?.("div")
+                || document.createElement("div");
+            row.className = "lunar-crater-controls-panel__type-row";
+            row.dataset.featureType = stats.featureType;
 
-        const toggle = panel.ownerDocument?.createElement?.("input")
-            || document.createElement("input");
-        toggle.type = "checkbox";
-        toggle.className = "lunar-crater-controls-panel__type-toggle";
-        const featureColor = getLunarFeatureTypeColor(stats.featureType);
-        if (toggle.style) {
-            toggle.style.accentColor = featureColor;
-        }
-
-        const swatch = panel.ownerDocument?.createElement?.("span")
-            || document.createElement("span");
-        swatch.className = "lunar-crater-controls-panel__type-swatch";
-        swatch.style?.setProperty?.("--lunar-feature-type-color", featureColor);
-        swatch.setAttribute("aria-hidden", "true");
-
-        const label = panel.ownerDocument?.createElement?.("label")
-            || document.createElement("label");
-        label.className = "lunar-crater-controls-panel__type-label";
-        label.textContent = `${formatFeatureTypeLabel(stats.featureType)} (${formatCraterCount(stats.count)})`;
-
-        const range = panel.ownerDocument?.createElement?.("div")
-            || document.createElement("div");
-        range.className = "lunar-crater-controls-panel__type-range";
-        const rangeValue = panel.ownerDocument?.createElement?.("span")
-            || document.createElement("span");
-        rangeValue.className = "lunar-crater-controls-panel__type-range-value";
-        rangeValue.textContent = formatTypeRangeValue(null, null);
-
-        const rangeStack = panel.ownerDocument?.createElement?.("div")
-            || document.createElement("div");
-        rangeStack.className = "lunar-crater-controls-panel__type-range-stack";
-
-        const createTypeSlider = (className, labelText, sliderMax) => {
-            const slider = panel.ownerDocument?.createElement?.("input")
+            const toggle = panel.ownerDocument?.createElement?.("input")
                 || document.createElement("input");
-            slider.type = "range";
-            slider.className = `lunar-crater-controls-panel__range ${className}`;
-            slider.step = String(LUNAR_CRATER_DIAMETER_STEP_KM);
-            slider.min = String(TYPE_FILTER_DEFAULT_MIN_KM);
-            slider.max = String(sliderMax);
-            slider.value = String(TYPE_FILTER_DEFAULT_MIN_KM);
-            slider.setAttribute("aria-label", labelText);
-            return slider;
-        };
+            toggle.type = "checkbox";
+            toggle.className = "lunar-crater-controls-panel__type-toggle";
+            const featureColor = getLunarFeatureTypeColor(stats.featureType);
+            if (toggle.style) {
+                toggle.style.accentColor = featureColor;
+            }
 
-        const sliderMax = resolveTypeSliderMax(stats);
-        const dualRange = panel.ownerDocument?.createElement?.("div")
-            || document.createElement("div");
-        dualRange.className = "lunar-crater-controls-panel__dual-range";
-        const dualRangeFill = panel.ownerDocument?.createElement?.("span")
-            || document.createElement("span");
-        dualRangeFill.className = "lunar-crater-controls-panel__dual-range-fill";
+            const swatch = panel.ownerDocument?.createElement?.("span")
+                || document.createElement("span");
+            swatch.className = "lunar-crater-controls-panel__type-swatch";
+            swatch.style?.setProperty?.("--lunar-feature-type-color", featureColor);
+            swatch.setAttribute("aria-hidden", "true");
 
-        const minSlider = createTypeSlider(
-            "lunar-crater-controls-panel__type-slider--min",
-            `${formatFeatureTypeLabel(stats.featureType)} minimum diameter`,
-            sliderMax,
-        );
-        const maxSlider = createTypeSlider(
-            "lunar-crater-controls-panel__type-slider--max",
-            `${formatFeatureTypeLabel(stats.featureType)} maximum diameter`,
-            sliderMax,
-        );
-        maxSlider.value = String(sliderMax);
-        dualRange.appendChild(dualRangeFill);
-        dualRange.appendChild(minSlider);
-        dualRange.appendChild(maxSlider);
-        rangeStack.appendChild(dualRange);
-        range.appendChild(rangeValue);
-        range.appendChild(rangeStack);
+            const label = panel.ownerDocument?.createElement?.("label")
+                || document.createElement("label");
+            label.className = "lunar-crater-controls-panel__type-label";
+            label.textContent = `${formatFeatureTypeLabel(stats.featureType)} (${formatCraterCount(stats.count)})`;
 
-        row.appendChild(toggle);
-        row.appendChild(swatch);
-        row.appendChild(label);
+            const range = panel.ownerDocument?.createElement?.("div")
+                || document.createElement("div");
+            range.className = "lunar-crater-controls-panel__type-range";
+            const rangeValue = panel.ownerDocument?.createElement?.("span")
+                || document.createElement("span");
+            rangeValue.className = "lunar-crater-controls-panel__type-range-value";
+            rangeValue.textContent = formatTypeRangeValue(null, null);
+
+            const rangeStack = panel.ownerDocument?.createElement?.("div")
+                || document.createElement("div");
+            rangeStack.className = "lunar-crater-controls-panel__type-range-stack";
+
+            const createTypeSlider = (className, labelText, sliderMax) => {
+                const slider = panel.ownerDocument?.createElement?.("input")
+                    || document.createElement("input");
+                slider.type = "range";
+                slider.className = `lunar-crater-controls-panel__range ${className}`;
+                slider.step = String(LUNAR_CRATER_DIAMETER_STEP_KM);
+                slider.min = String(TYPE_FILTER_DEFAULT_MIN_KM);
+                slider.max = String(sliderMax);
+                slider.value = String(TYPE_FILTER_DEFAULT_MIN_KM);
+                slider.setAttribute("aria-label", labelText);
+                return slider;
+            };
+
+            const sliderMax = resolveTypeSliderMax(stats);
+            const dualRange = panel.ownerDocument?.createElement?.("div")
+                || document.createElement("div");
+            dualRange.className = "lunar-crater-controls-panel__dual-range";
+            const dualRangeFill = panel.ownerDocument?.createElement?.("span")
+                || document.createElement("span");
+            dualRangeFill.className = "lunar-crater-controls-panel__dual-range-fill";
+
+            const minSlider = createTypeSlider(
+                "lunar-crater-controls-panel__type-slider--min",
+                `${formatFeatureTypeLabel(stats.featureType)} minimum diameter`,
+                sliderMax,
+            );
+            const maxSlider = createTypeSlider(
+                "lunar-crater-controls-panel__type-slider--max",
+                `${formatFeatureTypeLabel(stats.featureType)} maximum diameter`,
+                sliderMax,
+            );
+            maxSlider.value = String(sliderMax);
+            dualRange.appendChild(dualRangeFill);
+            dualRange.appendChild(minSlider);
+            dualRange.appendChild(maxSlider);
+            rangeStack.appendChild(dualRange);
+            range.appendChild(rangeValue);
+            range.appendChild(rangeStack);
+
+            row.appendChild(toggle);
+            row.appendChild(swatch);
+            row.appendChild(label);
             row.appendChild(range);
             groupRows.appendChild(row);
 
@@ -1032,7 +1074,7 @@ function ensureTypeFilterControls(elements = {}) {
         groupContainer.appendChild(groupRows);
         container.appendChild(groupContainer);
     }
-    bindLunarFeatureGroupAccordion(container, { openFirst: true });
+    bindLunarFeatureGroupTabs(container, { openFirst: true });
 
     elements.typeControls = typeControls;
     elements.presetButtons = presetButtons;
@@ -1147,6 +1189,7 @@ export function getLunarCraterControlPanelElements(documentRef, {
         idPrefix,
         pill: pillId ? getElement(pillId) : null,
         panel,
+        tabPanelBody: getPanelElement("tabPanelBody", `${idPrefix}-tab-panel`),
         closeButton: getElement(`${idPrefix}-close`),
         presetContainer: getPanelElement("presetContainer", `${idPrefix}-presets`),
         searchInput: getElement(`${idPrefix}-search`) ||
@@ -1156,7 +1199,6 @@ export function getLunarCraterControlPanelElements(documentRef, {
             null,
         searchResultsContainer: getPanelElement("searchResultsContainer", `${idPrefix}-search-results`),
         searchWrap,
-        filterToggle: getPanelElement("filterToggle", `${idPrefix}-filter-toggle`),
         typeFilterContainer: getPanelElement("typeFilterContainer", `${idPrefix}-type-filters`),
         visibleInput: getElement(visibleInputId || `${idPrefix}-visible`) ||
             (idPrefix === "lunar-crater" ? getElement("view-lunar-craters") : null),
@@ -1365,20 +1407,33 @@ export function syncLunarCraterControlPanel(elements = {}, state = readLunarCrat
     if (elements.filterScopeShowAll) {
         const active = activeScope === LUNAR_CRATER_FILTER_SCOPE_SHOW_ALL;
         elements.filterScopeShowAll.classList?.toggle?.("is-active", active);
-        elements.filterScopeShowAll.setAttribute?.("aria-pressed", active ? "true" : "false");
+        elements.filterScopeShowAll.setAttribute?.("aria-selected", active ? "true" : "false");
+        elements.filterScopeShowAll.setAttribute?.("tabindex", active ? "0" : "-1");
         elements.filterScopeShowAll.disabled = controlsDisabled;
     }
     if (elements.filterScopeHover) {
         const active = activeScope === LUNAR_CRATER_FILTER_SCOPE_HOVER;
         elements.filterScopeHover.classList?.toggle?.("is-active", active);
-        elements.filterScopeHover.setAttribute?.("aria-pressed", active ? "true" : "false");
+        elements.filterScopeHover.setAttribute?.("aria-selected", active ? "true" : "false");
+        elements.filterScopeHover.setAttribute?.("tabindex", active ? "0" : "-1");
         elements.filterScopeHover.disabled = controlsDisabled;
     }
     if (elements.filterScopeSearch) {
         const active = isSearchScope;
         elements.filterScopeSearch.classList?.toggle?.("is-active", active);
-        elements.filterScopeSearch.setAttribute?.("aria-pressed", active ? "true" : "false");
+        elements.filterScopeSearch.setAttribute?.("aria-selected", active ? "true" : "false");
+        elements.filterScopeSearch.setAttribute?.("tabindex", active ? "0" : "-1");
         elements.filterScopeSearch.disabled = controlsDisabled;
+    }
+    if (elements.tabPanelBody) {
+        const labelledBy = isSearchScope
+            ? elements.filterScopeSearch?.id
+            : activeScope === LUNAR_CRATER_FILTER_SCOPE_HOVER
+                ? elements.filterScopeHover?.id
+                : elements.filterScopeShowAll?.id;
+        if (labelledBy) {
+            elements.tabPanelBody.setAttribute?.("aria-labelledby", labelledBy);
+        }
     }
     if (elements.showAllInput) {
         elements.showAllInput.checked = normalized.lunarCraterShowAllEnabled === true;
@@ -1415,9 +1470,6 @@ export function syncLunarCraterControlPanel(elements = {}, state = readLunarCrat
         elements.diameterValue.value = formatDiameterRange(scopedState);
         elements.diameterValue.textContent = formatDiameterRange(scopedState);
     }
-    if (elements.typeFilterContainer) {
-        elements.typeFilterContainer.hidden = elements.typeFilterContainer.hidden === true;
-    }
     if (elements.searchWrap) {
         elements.searchWrap.hidden = false;
     }
@@ -1433,11 +1485,8 @@ export function syncLunarCraterControlPanel(elements = {}, state = readLunarCrat
     if (elements.searchResultsContainer) {
         elements.searchResultsContainer.dataset.excludedKeys = scopedState.lunarFeatureExcludedKeys.join("\n");
     }
-    if (elements.filterToggle) {
-        const expanded = !isSearchScope && elements.typeFilterContainer?.hidden === false;
-        elements.filterToggle.disabled = controlsDisabled;
-        elements.filterToggle.setAttribute("aria-expanded", expanded ? "true" : "false");
-        elements.filterToggle.classList?.toggle?.("is-active", expanded);
+    if (elements.typeFilterContainer) {
+        elements.typeFilterContainer.hidden = isSearchScope;
     }
     if (elements.typeControls instanceof Map) {
         const normalizedTypeFilters = normalizeLunarFeatureTypeFilters(
@@ -1571,6 +1620,13 @@ export function bindLunarCraterControlPanel({ elements, commitPatch, sync }) {
         commitPatch?.(patch, options);
         syncControls();
     };
+    const activateFilterScope = (scope) => {
+        flushDiameterCommit();
+        flushTypeCommit();
+        setActiveFilterScope(elements, scope);
+        writeLunarCraterControlState(elements, {});
+        syncControls();
+    };
     const readCurrentTypeFilters = () => {
         const current = readLunarCraterControlState(elements);
         return normalizeLunarFeatureTypeFilters(
@@ -1687,25 +1743,41 @@ export function bindLunarCraterControlPanel({ elements, commitPatch, sync }) {
         );
     });
     listen(elements.filterScopeShowAll, "click", () => {
-        flushDiameterCommit();
-        flushTypeCommit();
-        setActiveFilterScope(elements, LUNAR_CRATER_FILTER_SCOPE_SHOW_ALL);
-        writeLunarCraterControlState(elements, {});
-        syncControls();
+        activateFilterScope(LUNAR_CRATER_FILTER_SCOPE_SHOW_ALL);
     });
     listen(elements.filterScopeHover, "click", () => {
-        flushDiameterCommit();
-        flushTypeCommit();
-        setActiveFilterScope(elements, LUNAR_CRATER_FILTER_SCOPE_HOVER);
-        writeLunarCraterControlState(elements, {});
-        syncControls();
+        activateFilterScope(LUNAR_CRATER_FILTER_SCOPE_HOVER);
     });
     listen(elements.filterScopeSearch, "click", () => {
-        flushDiameterCommit();
-        flushTypeCommit();
-        setActiveFilterScope(elements, LUNAR_CRATER_FILTER_SCOPE_SEARCH);
-        writeLunarCraterControlState(elements, {});
-        syncControls();
+        activateFilterScope(LUNAR_CRATER_FILTER_SCOPE_SEARCH);
+    });
+    listen(elements.filterScopeShowAll?.parentElement, "keydown", (event) => {
+        const tabs = [
+            [elements.filterScopeShowAll, LUNAR_CRATER_FILTER_SCOPE_SHOW_ALL],
+            [elements.filterScopeHover, LUNAR_CRATER_FILTER_SCOPE_HOVER],
+            [elements.filterScopeSearch, LUNAR_CRATER_FILTER_SCOPE_SEARCH],
+        ].filter(([tab]) => tab && tab.disabled !== true);
+        const currentIndex = tabs.findIndex(([tab]) => tab === event.target);
+        if (currentIndex < 0) return;
+        let nextIndex = currentIndex;
+        if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+            nextIndex = (currentIndex + 1) % tabs.length;
+        } else
+        if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+            nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+        } else
+        if (event.key === "Home") {
+            nextIndex = 0;
+        } else
+        if (event.key === "End") {
+            nextIndex = tabs.length - 1;
+        } else {
+            return;
+        }
+        event.preventDefault();
+        const [nextTab, nextScope] = tabs[nextIndex];
+        activateFilterScope(nextScope);
+        nextTab?.focus?.();
     });
     listen(elements.closeButton, "click", () => {
         if (elements.panel) {
@@ -1746,15 +1818,6 @@ export function bindLunarCraterControlPanel({ elements, commitPatch, sync }) {
             }),
             { sourceId: `${elements.searchResultsContainer.id || "lunar-feature-search-results"}:${featureKey}` },
         );
-    });
-
-    listen(elements.filterToggle, "click", () => {
-        if (!elements.typeFilterContainer) return;
-        const expanded = elements.typeFilterContainer.hidden !== false;
-        elements.typeFilterContainer.hidden = !expanded;
-        elements.filterToggle?.setAttribute?.("aria-expanded", expanded ? "true" : "false");
-        elements.filterToggle?.classList?.toggle?.("is-active", expanded);
-        syncControls();
     });
 
     listen(elements.presetContainer, "click", (event) => {
@@ -1992,12 +2055,15 @@ export function createLunarCraterControlPanelElements(documentRef, options = {})
     modeInput.id = `${prefix}-display-mode`;
     modeInput.value = state.lunarCraterDisplayMode;
 
-    const makeButton = (idSuffix, text, title, pressed = "false") => {
+    const makeButton = (idSuffix, text, title, selected = "false") => {
         const button = documentRef.createElement("button");
         button.id = `${prefix}-${idSuffix}`;
         button.type = "button";
         button.className = "lunar-crater-controls-panel__button";
-        button.setAttribute("aria-pressed", pressed);
+        button.setAttribute("role", "tab");
+        button.setAttribute("aria-selected", selected);
+        button.setAttribute("aria-controls", `${prefix}-tab-panel`);
+        button.setAttribute("tabindex", selected === "true" ? "0" : "-1");
         button.title = title;
         button.textContent = text;
         return button;
@@ -2005,12 +2071,12 @@ export function createLunarCraterControlPanelElements(documentRef, options = {})
 
     const scopeToggles = documentRef.createElement("div");
     scopeToggles.className = "lunar-crater-controls-panel__toggles";
-    scopeToggles.setAttribute("role", "group");
-    scopeToggles.setAttribute("aria-label", "Filter set");
+    scopeToggles.setAttribute("role", "tablist");
+    scopeToggles.setAttribute("aria-label", "Lunar feature modes");
     const filterScopeShowAll = makeButton(
         "filter-scope-show-all",
-        "Show All",
-        "Edit the Show All filter set",
+        "Show Always",
+        "Edit the Show Always filter set",
         "true",
     );
     const filterScopeHover = makeButton(
@@ -2026,6 +2092,12 @@ export function createLunarCraterControlPanelElements(documentRef, options = {})
     scopeToggles.appendChild(filterScopeShowAll);
     scopeToggles.appendChild(filterScopeHover);
     scopeToggles.appendChild(filterScopeSearch);
+
+    const tabPanelBody = documentRef.createElement("div");
+    tabPanelBody.id = `${prefix}-tab-panel`;
+    tabPanelBody.className = "lunar-crater-controls-panel__tab-panel";
+    tabPanelBody.setAttribute("role", "tabpanel");
+    tabPanelBody.setAttribute("aria-labelledby", filterScopeShowAll.id);
 
     const searchWrap = documentRef.createElement("div");
     searchWrap.id = `${prefix}-search-wrap`;
@@ -2058,14 +2130,6 @@ export function createLunarCraterControlPanelElements(documentRef, options = {})
     searchResults.id = `${prefix}-search-results`;
     searchResults.className = "lunar-crater-controls-panel__search-results";
     searchResults.hidden = true;
-
-    const filterToggle = documentRef.createElement("button");
-    filterToggle.id = `${prefix}-filter-toggle`;
-    filterToggle.type = "button";
-    filterToggle.className = "lunar-crater-controls-panel__filter-toggle";
-    filterToggle.setAttribute("aria-expanded", "false");
-    filterToggle.setAttribute("aria-controls", typeFilters.id);
-    filterToggle.textContent = "Filters";
 
     const label = documentRef.createElement("label");
     label.id = `${prefix}-range-label`;
@@ -2157,15 +2221,15 @@ export function createLunarCraterControlPanelElements(documentRef, options = {})
     panel.appendChild(modeInput);
     panel.appendChild(header);
     panel.appendChild(scopeToggles);
-    panel.appendChild(presets);
-    panel.appendChild(label);
-    panel.appendChild(rangeStack);
-    panel.appendChild(scale);
-    panel.appendChild(typeFilters);
-    panel.appendChild(statusRow);
-    panel.appendChild(nudge);
-    panel.appendChild(searchResults);
-    panel.appendChild(filterToggle);
+    tabPanelBody.appendChild(presets);
+    tabPanelBody.appendChild(label);
+    tabPanelBody.appendChild(rangeStack);
+    tabPanelBody.appendChild(scale);
+    tabPanelBody.appendChild(typeFilters);
+    tabPanelBody.appendChild(statusRow);
+    tabPanelBody.appendChild(nudge);
+    tabPanelBody.appendChild(searchResults);
+    panel.appendChild(tabPanelBody);
 
     return {
         panel,
@@ -2174,7 +2238,7 @@ export function createLunarCraterControlPanelElements(documentRef, options = {})
         searchWrap,
         searchInput,
         searchResultsContainer: searchResults,
-        filterToggle,
+        tabPanelBody,
         typeFilterContainer: typeFilters,
         visibleInput,
         showAllInput,
