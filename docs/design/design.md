@@ -111,6 +111,9 @@ Example deep dive:
 
 ## 4) Visual Systems
 
+- Runtime UX doctrine is captured in [Runtime UX Doctrine](runtime-ux-doctrine.md).
+- Artemis product UX direction is captured in [Artemis In Real Time UX Principles](artemis-in-real-time-ux-principles.md).
+- Runtime UI style and control taxonomy are captured in [Style And Typography Guide](style-typography-guide.md).
 - 2D view: SVG/D3 line/path rendering.
 - 3D view: Three.js mesh/line/lighting pipeline.
 - Orbit styles:
@@ -155,6 +158,8 @@ Example deep dive:
 
 ### Feature specs
 
+- [Runtime UX Doctrine](runtime-ux-doctrine.md)
+- [Artemis In Real Time UX Principles](artemis-in-real-time-ux-principles.md)
 - [Panel System V1 Spec](specs/panel-system-v1-spec.md)
 - [Camera State Transition Spec](specs/camera-state-transition-spec.md)
 - [Frame and Shoot Lighting and Exposure Spec](specs/frame-and-shoot-lighting-exposure-spec.md)
