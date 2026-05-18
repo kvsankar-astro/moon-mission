@@ -205,15 +205,14 @@ describe("createHeaderPillStripController", function () {
         expect(harness.strip.classList.contains("header-pill-strip--groups-expanded")).toBe(true);
     });
 
-    it("does not use desktop group expansion on mobile", function () {
+    it("keeps groups expanded by default on mobile", function () {
         const harness = createHarness({ mobile: true });
 
         harness.controller.bind();
-        harness.strip.dispatchEvent({ type: "pointerenter" });
+        expect(harness.strip.classList.contains("header-pill-strip--groups-expanded")).toBe(true);
 
-        expect(harness.strip.classList.contains("header-pill-strip--groups-expanded")).toBe(false);
-
-        harness.controller.setGroupsExpandedState(true);
-        expect(harness.strip.classList.contains("header-pill-strip--groups-expanded")).toBe(false);
+        harness.strip.dispatchEvent({ type: "pointerleave" });
+        expect(harness.hasPendingTimeout()).toBe(false);
+        expect(harness.strip.classList.contains("header-pill-strip--groups-expanded")).toBe(true);
     });
 });

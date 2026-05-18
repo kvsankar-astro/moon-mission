@@ -1762,18 +1762,6 @@ textarea {
         max-width: none;
     }
 
-    #header-pill-strip:not(.header-pill-strip--collapsed) .header-pill-group:not(.header-pill-group--panels):not(.header-pill-group--annotations):not(:focus-within) .header-pill-segment__btn {
-        display: none;
-    }
-
-    #header-pill-strip:not(.header-pill-strip--collapsed) .header-pill-group:not(.header-pill-group--panels):not(.header-pill-group--annotations):not(:focus-within) .header-pill-segment__btn.is-active,
-    #header-pill-strip:not(.header-pill-strip--collapsed) .header-pill-group:not(.header-pill-group--panels):not(.header-pill-group--annotations):not(:focus-within) .header-pill-segment__btn.is-open,
-    #header-pill-strip:not(.header-pill-strip--collapsed) .header-pill-group:not(.header-pill-group--panels):not(.header-pill-group--annotations):not(:focus-within) .header-pill-segment__btn[aria-pressed="true"],
-    #header-pill-strip:not(.header-pill-strip--collapsed) .header-pill-group:not(.header-pill-group--panels):not(.header-pill-group--annotations):not(:focus-within) .header-pill-segment__btn[aria-expanded="true"],
-    #header-pill-strip:not(.header-pill-strip--collapsed) .header-pill-group--choice:not(:focus-within) .header-pill-segment:not(:has(.header-pill-segment__btn.is-active, .header-pill-segment__btn.is-open, .header-pill-segment__btn[aria-pressed="true"], .header-pill-segment__btn[aria-expanded="true"])) .header-pill-segment__btn:first-of-type {
-        display: block;
-    }
-
     #header-pill-strip-primary {
         justify-content: flex-start;
         flex-wrap: nowrap;
