@@ -27,12 +27,23 @@ function normalizeTranscriptSegment(segment) {
     if (!segment || typeof segment !== "object" || Array.isArray(segment)) return null;
     const startSeconds = toFiniteNumber(segment.startSeconds);
     const endSeconds = toFiniteNumber(segment.endSeconds);
+    const rawDisplayStartSeconds = toFiniteNumber(segment.displayStartSeconds);
+    const rawDisplayEndSeconds = toFiniteNumber(segment.displayEndSeconds);
+    const displayStartSeconds = Number.isFinite(rawDisplayStartSeconds)
+        ? rawDisplayStartSeconds
+        : startSeconds;
+    const displayEndSeconds = Number.isFinite(rawDisplayEndSeconds)
+        ? rawDisplayEndSeconds
+        : endSeconds;
     const text = normalizeTranscriptText(segment.text);
     const status = asTrimmedString(segment.status || "ok").toLowerCase();
     if (
         !Number.isFinite(startSeconds)
         || !Number.isFinite(endSeconds)
         || endSeconds <= startSeconds
+        || !Number.isFinite(displayStartSeconds)
+        || !Number.isFinite(displayEndSeconds)
+        || displayEndSeconds <= displayStartSeconds
         || !text
         || HIDDEN_TRANSCRIPT_STATUSES.has(status)
     ) {
@@ -42,6 +53,8 @@ function normalizeTranscriptSegment(segment) {
         id: segment.id,
         startSeconds,
         endSeconds,
+        displayStartSeconds,
+        displayEndSeconds,
         speaker: asTrimmedString(segment.speaker),
         displaySpeaker: asTrimmedString(segment.displaySpeaker),
         text,
@@ -57,12 +70,19 @@ function normalizeTranscriptDocument(documentData) {
     const segments = (Array.isArray(data.segments) ? data.segments : [])
         .map(normalizeTranscriptSegment)
         .filter(Boolean)
-        .sort((a, b) => a.startSeconds - b.startSeconds || a.endSeconds - b.endSeconds);
+        .sort((a, b) => (
+            a.displayStartSeconds - b.displayStartSeconds
+            || a.displayEndSeconds - b.displayEndSeconds
+            || a.startSeconds - b.startSeconds
+        ));
     return {
         source: asTrimmedString(data.source),
         schemaVersion: toFiniteNumber(data.schemaVersion),
         durationHms: asTrimmedString(data.durationHms),
         timeBase: asTrimmedString(data.timeBase),
+        displayTimingMethod: data.displayTimingMethod && typeof data.displayTimingMethod === "object"
+            ? data.displayTimingMethod
+            : null,
         speakers: data.speakers && typeof data.speakers === "object" && !Array.isArray(data.speakers)
             ? data.speakers
             : {},
@@ -78,9 +98,9 @@ function findTranscriptSegmentAtTime(segments, seconds) {
     while (low <= high) {
         const mid = Math.floor((low + high) / 2);
         const segment = segments[mid];
-        if (safeSeconds < segment.startSeconds) {
+        if (safeSeconds < segment.displayStartSeconds) {
             high = mid - 1;
-        } else if (safeSeconds >= segment.endSeconds) {
+        } else if (safeSeconds >= segment.displayEndSeconds) {
             low = mid + 1;
         } else {
             return segment;

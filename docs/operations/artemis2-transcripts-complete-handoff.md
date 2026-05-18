@@ -856,3 +856,39 @@ The fast steps, export, concat, and index, are safe to run repeatedly.
 - JSON Schema: formal validation schema not authored. Suggested in Section 5.
 - WhisperX word alignment for about 13 short/silent segments: covered 99.4%, not 100%.
 - Cleanup of `_disambiguated_disambiguated.txt` file generation: happens as a side effect of running disambiguation on already-disambiguated input. The files are cleaned up manually, but the script could be patched to avoid producing them. Cosmetic only.
+
+## 11. Schema v4 Display Timing Addendum
+
+After the first app integration, jump-to-time testing found stale captions caused by raw Whisper segment boundaries that extended far beyond the spoken words. The app should treat `startSeconds` / `endSeconds` as provenance ranges and use `displayStartSeconds` / `displayEndSeconds` for caption display and user-facing mention timing.
+
+Transcript agent findings:
+
+- 56 of 3,794 segments, about 1.5%, had more than 60 seconds of trailing silence after their last word.
+- 2 segments had more than 300 seconds of trailing silence; the maximum was segment `3223` at 421 seconds.
+- Median trailing silence was 0.02 seconds; this was a long-tail issue, not a general offset issue.
+- Breakdown: 29 affected segments in Part 1, 27 in Part 2.
+- Root cause: faster-whisper large-v3 with `vad_filter=True`; VAD-filtered segment endpoints can snap to the next VAD silence boundary even when speech ended much earlier.
+- Not caused by pyannote diarization or concat/export logic.
+
+Schema change:
+
+- `schemaVersion` is now `4`.
+- Each segment includes `displayStartSeconds` and `displayEndSeconds`.
+- For segments with `words[]`, display timing is derived from `words[0].start` to `words[-1].end + 0.15s`.
+- For segments without words, display timing uses a text-length heuristic of 0.4 seconds per word, minimum 1.0 second, capped at `endSeconds`.
+- Invariant: `startSeconds <= displayStartSeconds <= displayEndSeconds <= endSeconds`.
+- Top-level `displayTimingMethod` documents the derivation.
+
+Regenerated files from the transcript workspace:
+
+- `outputs/artemis2-lunar-flyby-broadcast-combined.json`
+- `outputs/artemis2-lunar-flyby-broadcast-part1.aligned.json`
+- `outputs/artemis2-lunar-flyby-broadcast-part2.aligned.json`
+- `outputs/artemis2-lunar-flyby-broadcast.index.json`
+
+Updated transcript tooling:
+
+- New: `scripts/tighten_display_times.py`
+- Updated: `scripts/concat_parts.py`
+- Updated: `scripts/build_index.py`
+- Updated docs: `docs/HANDOFF.md`, `docs/PIPELINE.md`

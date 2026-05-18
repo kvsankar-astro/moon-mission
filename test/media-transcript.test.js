@@ -50,4 +50,31 @@ describe("media transcript domain", () => {
         expect(findTranscriptSegmentAtTime(transcript.segments, 22)?.text).toBe("second");
         expect(findTranscriptSegmentAtTime(transcript.segments, 16)).toBe(null);
     });
+
+    it("uses tight display timing when present instead of raw whisper boundaries", () => {
+        const transcript = normalizeTranscriptDocument({
+            schemaVersion: 4,
+            displayTimingMethod: {
+                withWords: "displayStartSeconds = words[0].start; displayEndSeconds = words[-1].end + 0.15s",
+            },
+            segments: [
+                {
+                    id: 3223,
+                    startSeconds: 31540,
+                    endSeconds: 31961,
+                    displayStartSeconds: 31540,
+                    displayEndSeconds: 31542.31,
+                    text: "for the day before they head into their sleep period.",
+                    status: "ok",
+                },
+            ],
+        });
+
+        expect(transcript.schemaVersion).toBe(4);
+        expect(transcript.displayTimingMethod).toEqual(expect.objectContaining({
+            withWords: expect.any(String),
+        }));
+        expect(findTranscriptSegmentAtTime(transcript.segments, 31541)?.id).toBe(3223);
+        expect(findTranscriptSegmentAtTime(transcript.segments, 31600)).toBe(null);
+    });
 });
