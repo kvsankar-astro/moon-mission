@@ -276,6 +276,24 @@ describe("normalizeMissionMediaManifest", () => {
                             attribution: "Auto-generated transcript.",
                         },
                     ],
+                    transcriptDoc: {
+                        sourceUrl: "../media/transcripts/flyby-combined.json",
+                        label: "Diarized transcript",
+                        attribution: "Auto-generated transcript.",
+                    },
+                    searchIndex: "../media/transcripts/flyby.index.json",
+                    partOffsets: {
+                        part1: {
+                            start: 0,
+                            end: 22373,
+                            durationHms: "06:12:53",
+                        },
+                        part2: {
+                            start: 22373,
+                            end: 36599,
+                            durationHms: "03:57:06",
+                        },
+                    },
                     startTime: "2026-04-06T17:56:00Z",
                     endTime: "2026-04-07T04:06:00Z",
                     durationSeconds: 36600.13,
@@ -318,6 +336,30 @@ describe("normalizeMissionMediaManifest", () => {
                     attribution: "Auto-generated transcript.",
                 },
             ],
+            transcriptDoc: {
+                id: "flyby-broadcast-transcript",
+                sourceUrl: "assets/artemis2/data/../media/transcripts/flyby-combined.json",
+                label: "Diarized transcript",
+                attribution: "Auto-generated transcript.",
+            },
+            searchIndex: {
+                id: "flyby-broadcast-search-index",
+                sourceUrl: "assets/artemis2/data/../media/transcripts/flyby.index.json",
+                label: "",
+                attribution: "",
+            },
+            partOffsets: {
+                part1: {
+                    start: 0,
+                    end: 22373,
+                    durationHms: "06:12:53",
+                },
+                part2: {
+                    start: 22373,
+                    end: 36599,
+                    durationHms: "03:57:06",
+                },
+            },
         });
         expect(manifest.mediaStreams[0].syncAnchors).toEqual([
             {

@@ -683,6 +683,82 @@ describe("background media panel helpers", () => {
         expect(nodes.get("background-media-caption-text").hidden).toBe(true);
     });
 
+    it("renders active broadcast captions from the transcript JSON before using VTT fallback", async () => {
+        const { nodes } = installBackgroundPanelDom();
+        globalThis.fetch = vi.fn((url) => {
+            if (String(url).endsWith(".json")) {
+                return Promise.resolve({
+                    ok: true,
+                    json: () => Promise.resolve({
+                        schemaVersion: 3,
+                        segments: [
+                            {
+                                id: 1,
+                                startSeconds: 8,
+                                endSeconds: 12,
+                                displaySpeaker: "Jeremy Hansen",
+                                text: "The moon is right there.",
+                                status: "ok",
+                            },
+                        ],
+                    }),
+                });
+            }
+            return Promise.resolve({
+                ok: true,
+                text: () => Promise.resolve([
+                    "WEBVTT",
+                    "",
+                    "1",
+                    "00:00:08.000 --> 00:00:12.000",
+                    "Fallback caption.",
+                    "",
+                ].join("\n")),
+            });
+        });
+        const startTimeMs = Date.parse("2026-04-06T16:58:14Z");
+        const actions = createBackgroundMediaPanelActions({
+            getAnimationRunning: () => false,
+            getAnimationRealtime: () => true,
+        });
+        openEnabledBackgroundPanel(actions, nodes);
+        const item = {
+            id: "broadcast-transcript-json",
+            kind: "videoClip",
+            enabled: true,
+            assetUrl: "broadcast-transcript-json.mp4",
+            playbackRoles: ["background"],
+            startTimeMs,
+            endTimeMs: startTimeMs + 600000,
+            backgroundPlayback: {
+                enabled: true,
+            },
+            transcriptDoc: {
+                sourceUrl: "broadcast-transcript-json.json",
+            },
+            captionTracks: [
+                {
+                    sourceUrl: "broadcast-transcript-json.en.vtt",
+                    default: true,
+                },
+            ],
+        };
+
+        actions.render({
+            items: [item],
+            timeMs: startTimeMs + 10000,
+            animationRunning: false,
+        });
+        for (let index = 0; index < 5; index += 1) {
+            await Promise.resolve();
+        }
+
+        expect(nodes.get("background-media-caption-text").textContent).toBe(
+            "Jeremy Hansen: The moon is right there.",
+        );
+        expect(nodes.get("background-media-caption-text").hidden).toBe(false);
+    });
+
     it("toggles broadcast captions from the header button", async () => {
         const { nodes } = installBackgroundPanelDom();
         globalThis.fetch = vi.fn(() => Promise.resolve({

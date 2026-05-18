@@ -17,6 +17,11 @@ import {
     formatDuration,
 } from "../utils/time-utils.js";
 import { buildMediaStreamSyncPlan } from "../core/domain/media-stream-sync.js";
+import {
+    findTranscriptSegmentAtTime,
+    formatTranscriptSegmentCaption,
+    normalizeTranscriptDocument,
+} from "../core/domain/media-transcript.js";
 
 const BACKGROUND_MEDIA_PANEL_ID = "workflow:background-media";
 const BACKGROUND_MEDIA_LAYOUT_PRESET_VERSION = "background-media-v9-shell-resize-controls";
@@ -43,6 +48,7 @@ const backgroundCandidatesCache = new WeakMap();
 const nodeAttributeCache = new WeakMap();
 const nodeClassToggleCache = new WeakMap();
 const captionCueCache = new Map();
+const transcriptDocumentCache = new Map();
 
 function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
@@ -253,6 +259,41 @@ function ensureCaptionCuesLoaded(sourceUrl, onLoaded) {
     return entry;
 }
 
+function ensureTranscriptDocumentLoaded(sourceUrl, onLoaded) {
+    const url = String(sourceUrl || "").trim();
+    if (!url) return null;
+    const cached = transcriptDocumentCache.get(url);
+    if (cached) return cached;
+
+    const entry = {
+        status: "loading",
+        document: normalizeTranscriptDocument(null),
+    };
+    transcriptDocumentCache.set(url, entry);
+    if (typeof globalThis.fetch !== "function") {
+        entry.status = "error";
+        return entry;
+    }
+    const request = globalThis.fetch(url);
+    if (!request || typeof request.then !== "function") {
+        entry.status = "error";
+        transcriptDocumentCache.delete(url);
+        return entry;
+    }
+    request
+        .then((response) => (response?.ok === true ? response.json() : null))
+        .then((data) => {
+            entry.document = normalizeTranscriptDocument(data);
+            entry.status = "ready";
+            if (typeof onLoaded === "function") onLoaded();
+        })
+        .catch(() => {
+            entry.status = "error";
+            transcriptDocumentCache.delete(url);
+        });
+    return entry;
+}
+
 function removeCaptionTrackNodes(video) {
     const existingTracks = Array.from(
         video?.querySelectorAll?.('track[data-background-media-caption-track="true"]') || [],
@@ -272,16 +313,30 @@ function getCaptionTrackAttribution(item) {
 }
 
 function syncCaptionAttribution(item = null, captionsEnabled = true) {
-    const attribution = getCaptionTrackAttribution(item);
+    const attribution = String(item?.transcriptDoc?.attribution || "").trim()
+        || getCaptionTrackAttribution(item);
     const node = getNode("background-media-caption-attribution");
     if (!node) return;
     setNodeText(node, attribution);
     setNodeHidden(node, captionsEnabled !== true || !attribution);
 }
 
+function syncRenderedTranscriptCaption(item, offsetSeconds, onLoaded) {
+    const sourceUrl = String(item?.transcriptDoc?.sourceUrl || "").trim();
+    if (!sourceUrl) return false;
+    const entry = ensureTranscriptDocumentLoaded(sourceUrl, onLoaded);
+    if (entry?.status !== "ready") return false;
+    const segment = findTranscriptSegmentAtTime(entry.document?.segments, offsetSeconds);
+    setCaptionText(formatTranscriptSegmentCaption(segment));
+    return true;
+}
+
 function syncRenderedCaption(item, offsetSeconds, onLoaded, captionsEnabled = true) {
     if (captionsEnabled !== true) {
         setCaptionText("");
+        return;
+    }
+    if (syncRenderedTranscriptCaption(item, offsetSeconds, onLoaded)) {
         return;
     }
     const track = getDefaultCaptionTrack(item);
