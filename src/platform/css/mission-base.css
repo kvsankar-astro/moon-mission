@@ -1743,15 +1743,22 @@ textarea {
         display: none !important;
     }
 
-    #header-pill-strip .header-pill-group__label {
-        display: none;
-    }
-
     #header-pill-strip .header-pill-group {
         flex: 0 0 auto;
         align-items: center;
-        gap: 0;
+        gap: 4px;
         scroll-snap-align: start;
+    }
+
+    #header-pill-strip .header-pill-group__label {
+        display: inline-block;
+        flex: 0 0 auto;
+        color: var(--header-pill-group-label-color);
+        font-size: 8px;
+        line-height: 1;
+        letter-spacing: 0.08em;
+        opacity: 0.82;
+        white-space: nowrap;
     }
 
     #header-pill-strip .header-pill-segment {
