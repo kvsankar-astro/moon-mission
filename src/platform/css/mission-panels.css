@@ -510,8 +510,8 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 }
 
 .mission-panel-shell__button--icon {
-    width: 21px;
-    height: 21px;
+    width: 24px;
+    height: 24px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -529,8 +529,8 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 
 .mission-panel-shell__button--icon[data-icon]::before {
     content: "";
-    width: 11px;
-    height: 11px;
+    width: 12px;
+    height: 12px;
     display: block;
     background: currentColor;
     -webkit-mask-repeat: no-repeat;

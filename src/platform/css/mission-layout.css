@@ -262,7 +262,7 @@ canvas {
 }
 
 .aux-camera-view__auto-toggle {
-    min-height: 18px;
+    min-height: 22px;
     padding: 0 8px;
     border: 1px solid rgba(100, 130, 180, 0.44);
     border-radius: 999px;
@@ -356,13 +356,13 @@ canvas {
 }
 
 .aux-camera-view[data-controls-density="compact"] .mission-panel-shell__button--icon {
-    width: 19px;
-    height: 19px;
+    width: 22px;
+    height: 22px;
 }
 
 .aux-camera-view[data-controls-density="compact"] .mission-panel-shell__button--icon::before {
-    width: 10px;
-    height: 10px;
+    width: 11px;
+    height: 11px;
 }
 
 .aux-camera-view[data-controls-density="compact"] .aux-camera-view__fov-label {
@@ -560,8 +560,8 @@ html[data-app-view="selector"] .mission-loading-overlay,
     top: 7px;
     right: 7px;
     z-index: 6;
-    width: 18px;
-    height: 18px;
+    width: 22px;
+    height: 22px;
     border: 0;
     border-radius: 0;
     background: transparent;
@@ -4255,7 +4255,8 @@ body.mobile-shell-enabled .mission-floating-collapse-btn {
 
     .timeline-dock__track-toggle {
         min-width: 44px;
-        height: 18px;
+        min-height: 24px;
+        height: 24px;
         padding: 0 7px 1px;
     }
 
@@ -4325,6 +4326,8 @@ body.mobile-shell-enabled .mission-floating-collapse-btn {
     }
 
     .timeline-dock__current-row {
+        min-height: 24px;
+        padding: 0 4px;
         cursor: pointer;
         user-select: none;
         -webkit-user-select: none;
@@ -4627,9 +4630,9 @@ table {
         border: 0;
         background: transparent;
         color: rgba(183, 210, 248, 0.84);
-        min-height: 18px;
-        padding: 0 7px;
-        font-size: 8px;
+        min-height: 24px;
+        padding: 0 9px;
+        font-size: 9px;
         letter-spacing: 0.05em;
         text-transform: uppercase;
         font-weight: 600;
