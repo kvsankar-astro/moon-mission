@@ -33,6 +33,7 @@ const FIXED_INTERVALS = [
     { unit: "hour", step: 12, ms: 12 * HOUR_MS },
     { unit: "day", step: 1, ms: DAY_MS },
     { unit: "day", step: 2, ms: 2 * DAY_MS },
+    { unit: "day", step: 3, ms: 3 * DAY_MS },
     { unit: "week", step: 1, ms: 7 * DAY_MS },
     { unit: "week", step: 2, ms: 14 * DAY_MS },
 ];

@@ -4356,13 +4356,21 @@ body.mobile-shell-enabled .mission-floating-collapse-btn {
         font-size: 8px;
     }
 
-    .timeline-dock__markers--media {
+    .timeline-dock__markers--media,
+    .timeline-dock__media-rail {
         display: none;
     }
 
-    .timeline-dock__media-rail,
-    .timeline-dock__playhead {
-        display: none;
+    body.mobile-shell-enabled .timeline-dock__playhead,
+    body.mobile-shell-enabled .timeline-dock:not(.timeline-dock--media-track-visible) .timeline-dock__playhead {
+        display: block;
+        top: 0;
+        bottom: -16px;
+        width: 2px;
+    }
+
+    .timeline-dock__playhead::after {
+        width: 22px;
     }
 
     #shortcut-help {

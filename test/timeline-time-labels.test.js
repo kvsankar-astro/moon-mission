@@ -86,4 +86,18 @@ describe("timeline time labels", () => {
 
         expect(narrow.ms || narrow.approximateMs).toBeGreaterThanOrEqual(wide.ms || wide.approximateMs);
     });
+
+    it("keeps multi-day mobile ranges oriented with more than one tick", () => {
+        const startTimeMs = new Date(2026, 3, 2, 7, 27, 23).getTime();
+        const endTimeMs = new Date(2026, 3, 11, 5, 37, 11).getTime();
+
+        const labels = buildTimelineTimeLabels({
+            startTimeMs,
+            endTimeMs,
+            widthPx: 342,
+        });
+
+        expect(labels.length).toBeGreaterThanOrEqual(2);
+        expect(labels.every((label) => label.intervalUnit === "day")).toBe(true);
+    });
 });
