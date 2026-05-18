@@ -23,6 +23,12 @@ export function createHeaderPillStripController(deps = {}) {
     let lastGroupActivityAt = 0;
     let bound = false;
 
+    function isMobileControlLayout() {
+        const body = documentRef?.body;
+        if (body?.classList?.contains?.("mobile-shell-enabled")) return true;
+        return windowRef?.matchMedia?.("(max-width: 600px)")?.matches === true;
+    }
+
     function resetScrollPosition() {
         const primaryRow = documentRef.getElementById("header-pill-strip-primary");
         const secondaryRow = documentRef.getElementById("header-pill-strip-secondary");
@@ -41,8 +47,14 @@ export function createHeaderPillStripController(deps = {}) {
         const toggle = documentRef.getElementById("header-pill-strip-toggle");
         if (!strip || !toggle) return;
         const collapsed = isEffectivelyCollapsed();
+        if (isMobileControlLayout() && groupsExpanded) {
+            groupsExpanded = false;
+        }
         strip.classList.toggle("header-pill-strip--collapsed", collapsed);
-        strip.classList.toggle("header-pill-strip--groups-expanded", !collapsed && groupsExpanded);
+        strip.classList.toggle(
+            "header-pill-strip--groups-expanded",
+            !collapsed && groupsExpanded && !isMobileControlLayout(),
+        );
         toggle.textContent = collapsed ? "›" : "‹";
         toggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
         toggle.setAttribute(
@@ -72,6 +84,10 @@ export function createHeaderPillStripController(deps = {}) {
     }
 
     function expandGroups() {
+        if (isMobileControlLayout()) {
+            setGroupsExpandedState(false);
+            return;
+        }
         lastGroupActivityAt = nowImpl();
         clearGroupCollapseTimer();
         setGroupsExpandedState(true);
@@ -91,6 +107,10 @@ export function createHeaderPillStripController(deps = {}) {
     }
 
     function scheduleGroupsCollapse() {
+        if (isMobileControlLayout()) {
+            setGroupsExpandedState(false);
+            return;
+        }
         lastGroupActivityAt = nowImpl();
         queueGroupsCollapse(HEADER_PILL_GROUP_EXPAND_LINGER_MS);
     }
@@ -143,7 +163,12 @@ export function createHeaderPillStripController(deps = {}) {
         }
 
         requestAnimationFrameImpl(resetScrollPosition);
-        windowRef.addEventListener("resize", resetScrollPosition);
+        windowRef.addEventListener("resize", () => {
+            if (isMobileControlLayout()) {
+                setGroupsExpandedState(false);
+            }
+            resetScrollPosition();
+        });
         syncUi();
     }
 

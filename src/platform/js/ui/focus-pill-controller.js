@@ -39,6 +39,23 @@ export function createFocusPillController(deps = {}) {
         return mediaQuery ? mediaQuery.matches === true : true;
     }
 
+    function shouldAllowPanelShortcuts() {
+        return shouldAllowMediaPanel();
+    }
+
+    function closeMobileOnlyPanelsIfNeeded() {
+        if (shouldAllowPanelShortcuts()) return;
+        [
+            "workflow:background-media",
+            "workflow:media-browser",
+            "workflow:splashdown",
+            "aux:earth-rise-composer",
+            "aux:moon",
+            "aux:earth",
+            "aux:earth-origin-orbit-xy",
+        ].forEach((panelId) => closePanel(panelId));
+    }
+
     function resolveTimelineEventButtonByKeys(keys) {
         if (!Array.isArray(keys) || keys.length === 0) return null;
         const normalizedKeys = keys
@@ -82,8 +99,8 @@ export function createFocusPillController(deps = {}) {
         const flybyPillWrap = getElement("flyby-pill-wrap");
         if (!flybyPillWrap) return;
 
-        const panelShortcutsVisible = isArtemis2Mission();
-        const splashdownVisible = isArtemis2Mission() && !!resolveTimelineEventButtonByKeys(["splashdown"]);
+        const panelShortcutsVisible = isArtemis2Mission() && shouldAllowPanelShortcuts();
+        const splashdownVisible = panelShortcutsVisible && !!resolveTimelineEventButtonByKeys(["splashdown"]);
         setShortcutHidden("flyby-pill", !panelShortcutsVisible);
         setShortcutHidden("panel-pill-background", !panelShortcutsVisible);
         setShortcutHidden("panel-pill-media", !panelShortcutsVisible || !shouldAllowMediaPanel());
@@ -206,6 +223,10 @@ export function createFocusPillController(deps = {}) {
     }
 
     function toggleComposerPanel() {
+        if (!shouldAllowPanelShortcuts()) {
+            closeMobileOnlyPanelsIfNeeded();
+            return;
+        }
         if (isComposerPanelVisible()) {
             closePanel("aux:earth-rise-composer");
             return;
@@ -222,6 +243,10 @@ export function createFocusPillController(deps = {}) {
     }
 
     function toggleAuxiliaryPanel(panelId) {
+        if (!shouldAllowPanelShortcuts()) {
+            closeMobileOnlyPanelsIfNeeded();
+            return;
+        }
         if (isAuxPanelVisible(panelId)) {
             closePanel(panelId);
             return;
@@ -230,7 +255,7 @@ export function createFocusPillController(deps = {}) {
     }
 
     function restoreMediaPanel() {
-        if (!shouldAllowMediaPanel()) return;
+        if (!shouldAllowPanelShortcuts() || !shouldAllowMediaPanel()) return;
         const restored = invokeFirstAvailablePanelAction("workflow:media-browser", ["restore", "open", "focus"]);
         if (!restored) {
             documentRef?.dispatchEvent?.(createCustomEvent("media-browser-panel-open"));
@@ -239,8 +264,8 @@ export function createFocusPillController(deps = {}) {
     }
 
     function toggleMediaPanel() {
-        if (!shouldAllowMediaPanel()) {
-            closePanel("workflow:media-browser");
+        if (!shouldAllowPanelShortcuts() || !shouldAllowMediaPanel()) {
+            closeMobileOnlyPanelsIfNeeded();
             return;
         }
         if (isMediaPanelVisible()) {
@@ -256,6 +281,10 @@ export function createFocusPillController(deps = {}) {
     }
 
     function toggleBackgroundPanel() {
+        if (!shouldAllowPanelShortcuts()) {
+            closeMobileOnlyPanelsIfNeeded();
+            return;
+        }
         if (isBackgroundPanelVisible()) {
             closePanel("workflow:background-media");
             return;
@@ -264,6 +293,10 @@ export function createFocusPillController(deps = {}) {
     }
 
     function toggleSplashdownPanel() {
+        if (!shouldAllowPanelShortcuts()) {
+            closeMobileOnlyPanelsIfNeeded();
+            return;
+        }
         if (!isArtemis2Mission()) return;
         if (isGroundTrackPanelVisible()) {
             closePanel("workflow:splashdown");
@@ -334,11 +367,10 @@ export function createFocusPillController(deps = {}) {
         documentRef?.addEventListener?.("ground-track-panel-visibilitychange", syncFocusPillState);
         documentRef?.addEventListener?.("mission-media-panel-state", syncFocusPillState);
         windowRef?.addEventListener?.("resize", () => {
-            if (!shouldAllowMediaPanel()) {
-                closePanel("workflow:media-browser");
-            }
+            closeMobileOnlyPanelsIfNeeded();
             sync();
         });
+        closeMobileOnlyPanelsIfNeeded();
         sync();
     }
 

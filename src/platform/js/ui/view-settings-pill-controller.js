@@ -170,9 +170,24 @@ export function createViewSettingsPillController(deps = {}) {
         syncLunarCraterControlPanel(elements, readLunarCraterControlState(elements));
     }
 
+    function isMobileControlLayout() {
+        return documentRef?.body?.classList?.contains?.("mobile-shell-enabled") ||
+            windowRef?.matchMedia?.("(max-width: 600px)")?.matches === true;
+    }
+
+    function closeMobileOnlyPanelsIfNeeded() {
+        if (!isMobileControlLayout()) return;
+        setLunarCraterPanelOpen(false);
+        setGuidesPanelOpen(false);
+        setSurfacePointPanelOpen(false);
+    }
+
     function setLunarCraterPanelOpen(open) {
         const { pill, panel } = getCraterPanelElements();
         if (!panel) return;
+        if (open === true && isMobileControlLayout()) {
+            open = false;
+        }
         panel.hidden = open !== true;
         if (open === true && pill?.getBoundingClientRect && panel?.style) {
             const strip = getElement("header-pill-strip") || panel.offsetParent || null;
@@ -190,7 +205,9 @@ export function createViewSettingsPillController(deps = {}) {
             );
             panel.style.left = `${nextLeft}px`;
             panel.style.right = "auto";
-            panel.style.top = `${pillRect.bottom - stripRect.top + 4}px`;
+            panel.style.top = isMobileControlLayout()
+                ? `${(stripRect.height || 0) + 8}px`
+                : `${pillRect.bottom - stripRect.top + 4}px`;
         }
         if (pill) {
             pill.classList?.toggle?.("is-open", open === true);
@@ -314,7 +331,9 @@ export function createViewSettingsPillController(deps = {}) {
         );
         panel.style.left = `${nextLeft}px`;
         panel.style.right = "auto";
-        panel.style.top = `${pillRect.bottom - stripRect.top + 4}px`;
+        panel.style.top = isMobileControlLayout()
+            ? `${(stripRect.height || 0) + 8}px`
+            : `${pillRect.bottom - stripRect.top + 4}px`;
     }
 
     function setLunarGridPanelOpen(open) {
@@ -333,6 +352,9 @@ export function createViewSettingsPillController(deps = {}) {
     function setGuidesPanelOpen(open) {
         const { pill, panel } = getGuidesPanelElements();
         if (!panel) return;
+        if (open === true && isMobileControlLayout()) {
+            open = false;
+        }
         panel.hidden = open !== true;
         if (open === true) {
             positionPanelFromPill(panel, pill);
@@ -346,6 +368,9 @@ export function createViewSettingsPillController(deps = {}) {
     function setSurfacePointPanelOpen(open) {
         const { pill, panel } = getSurfacePointPanelElements();
         if (!panel) return;
+        if (open === true && isMobileControlLayout()) {
+            open = false;
+        }
         panel.hidden = open !== true;
         if (open === true) {
             if (pill?.getBoundingClientRect && panel?.style) {
@@ -471,6 +496,10 @@ export function createViewSettingsPillController(deps = {}) {
         if (pill) {
             pill.addEventListener("click", function (event) {
                 if (pill.disabled || pill.getAttribute?.("aria-disabled") === "true") return;
+                if (isMobileControlLayout()) {
+                    closeMobileOnlyPanelsIfNeeded();
+                    return;
+                }
                 event?.stopPropagation?.();
                 setLunarCraterPanelOpen(true);
                 syncLunarCraterPanelState();
@@ -752,6 +781,10 @@ export function createViewSettingsPillController(deps = {}) {
         if (guidesPill) {
             guidesPill.addEventListener("click", function (event) {
                 if (guidesPill.disabled || guidesPill.getAttribute?.("aria-disabled") === "true") return;
+                if (isMobileControlLayout()) {
+                    closeMobileOnlyPanelsIfNeeded();
+                    return;
+                }
                 event?.stopPropagation?.();
                 setGuidesPanelOpen(true);
                 syncGuidesPanelState();
@@ -775,6 +808,10 @@ export function createViewSettingsPillController(deps = {}) {
         if (surfacePointsPill) {
             surfacePointsPill.addEventListener("click", function (event) {
                 if (surfacePointsPill.disabled || surfacePointsPill.getAttribute?.("aria-disabled") === "true") return;
+                if (isMobileControlLayout()) {
+                    closeMobileOnlyPanelsIfNeeded();
+                    return;
+                }
                 event?.stopPropagation?.();
                 setSurfacePointPanelOpen(true);
                 syncSurfacePointPanelState();
@@ -917,6 +954,8 @@ export function createViewSettingsPillController(deps = {}) {
         }
 
         bindLandingPillVisibilityObserver();
+        windowRef?.addEventListener?.("resize", closeMobileOnlyPanelsIfNeeded);
+        closeMobileOnlyPanelsIfNeeded();
         sync();
     }
 

@@ -4375,9 +4375,29 @@ body.mobile-shell-enabled .mission-floating-collapse-btn {
     }
 
     #timeline-media-toggle,
+    #flyby-pill-wrap,
+    #flyby-pill,
+    #panel-pill-background,
     #panel-pill-media,
+    #focus-pill-splashdown,
+    #panel-pill-craft-moon,
+    #panel-pill-craft-earth,
+    #panel-pill-earth-orbit-xy,
+    #moon-profile-pill-quality,
+    #toggle-pill-lunar-craters,
+    #toggle-pill-surface-points,
+    #toggle-pill-guides,
     #media-browser-panel-wrapper,
-    #media-browser-panel {
+    #media-browser-panel,
+    #background-media-panel-wrapper,
+    #background-media-panel,
+    #ground-track-panel-wrapper,
+    #ground-track-panel,
+    #aux-camera-views .aux-camera-view[data-mode="composer"],
+    #aux-camera-views .aux-camera-view[data-panel-id="aux:earth-rise-composer"],
+    #aux-camera-views .aux-camera-view[data-panel-id="aux:moon"],
+    #aux-camera-views .aux-camera-view[data-panel-id="aux:earth"],
+    #aux-camera-views .aux-camera-view[data-panel-id="aux:earth-origin-orbit-xy"] {
         display: none !important;
         pointer-events: none !important;
     }

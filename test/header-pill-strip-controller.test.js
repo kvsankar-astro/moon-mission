@@ -55,7 +55,7 @@ function createElement(id, options = {}) {
     };
 }
 
-function createHarness() {
+function createHarness(options = {}) {
     const windowListeners = new Map();
     let pendingTimeout = null;
     const strip = createElement("header-pill-strip");
@@ -71,11 +71,17 @@ function createHarness() {
         ["header-pill-strip-tertiary", tertiary],
     ]);
     const documentRef = {
+        body: {
+            classList: createClassList(options.mobile ? ["mobile-shell-enabled"] : []),
+        },
         getElementById(id) {
             return elements.get(id) || null;
         },
     };
     const windowRef = {
+        matchMedia() {
+            return { matches: options.mobile === true };
+        },
         addEventListener(type, handler) {
             if (!windowListeners.has(type)) windowListeners.set(type, []);
             windowListeners.get(type).push(handler);
@@ -197,5 +203,17 @@ describe("createHeaderPillStripController", function () {
         harness.strip.dispatchEvent({ type: "pointerenter" });
         expect(harness.hasPendingTimeout()).toBe(false);
         expect(harness.strip.classList.contains("header-pill-strip--groups-expanded")).toBe(true);
+    });
+
+    it("does not use desktop group expansion on mobile", function () {
+        const harness = createHarness({ mobile: true });
+
+        harness.controller.bind();
+        harness.strip.dispatchEvent({ type: "pointerenter" });
+
+        expect(harness.strip.classList.contains("header-pill-strip--groups-expanded")).toBe(false);
+
+        harness.controller.setGroupsExpandedState(true);
+        expect(harness.strip.classList.contains("header-pill-strip--groups-expanded")).toBe(false);
     });
 });
