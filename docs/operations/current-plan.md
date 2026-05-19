@@ -134,9 +134,9 @@ These items came from the 2026-05-16 context switch. Treat them as queued work, 
 |------|--------|------------|
 | Move Moon render work to a branch. Current Moon render changes are risky to keep on `master`; issues were visible during smoke testing. | Done | [moon-render-assets.md](moon-render-assets.md) |
 | Investigate Flyby Broadcast panel going totally dark. | Open; reproduce again | [artemis2-media-workstream.md](artemis2-media-workstream.md) |
-| Fix Media panel overlap with events. | Open; user inputs pending | [performance-workstream.md](performance-workstream.md) |
+| Fix Media panel overlap with events. | Open; partly mitigated by default-layout work; user inputs pending | [performance-workstream.md](performance-workstream.md) |
 | Adjust Earth exposure during lunar eclipse so it cuts down to normal when only Earth is in view. | Done | [../design/specs/frame-and-shoot-lighting-exposure-spec.md](../design/specs/frame-and-shoot-lighting-exposure-spec.md) |
-| Integrate diarization artifacts. | Pending | [artemis2-media-workstream.md](artemis2-media-workstream.md) |
+| Integrate diarization artifacts. | Caption sync implemented with schema v4 display timing; richer transcript/search remains open | [artemis2-media-workstream.md](artemis2-media-workstream.md) |
 | Change crater search and filter settings. | Done; tabbed Show Always, Hover, and additive Search model implemented | [../design/specs/lunar-feature-controls-spec.md](../design/specs/lunar-feature-controls-spec.md) |
 | Explore diarization -> LLM -> search and other AI-assisted discovery features. | Open | [artemis2-media-workstream.md](artemis2-media-workstream.md) |
 | Fix play, media, and control bugs. | Open | [performance-workstream.md](performance-workstream.md) |

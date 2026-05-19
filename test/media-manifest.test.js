@@ -266,6 +266,34 @@ describe("normalizeMissionMediaManifest", () => {
                     sourcePageUrl: "https://commons.wikimedia.org/wiki/Category:Videos_of_Artemis_2",
                     sourceCredit: "NASA",
                     license: "Public domain",
+                    captionTracks: [
+                        {
+                            kind: "subtitles",
+                            label: "English transcript",
+                            srclang: "en",
+                            sourceUrl: "../media/streams/lunar-flyby/v1/flyby.en.webvtt",
+                            default: true,
+                            attribution: "Auto-generated transcript.",
+                        },
+                    ],
+                    transcriptDoc: {
+                        sourceUrl: "../media/transcripts/flyby-combined.json",
+                        label: "Diarized transcript",
+                        attribution: "Auto-generated transcript.",
+                    },
+                    searchIndex: "../media/transcripts/flyby.index.json",
+                    partOffsets: {
+                        part1: {
+                            start: 0,
+                            end: 22373,
+                            durationHms: "06:12:53",
+                        },
+                        part2: {
+                            start: 22373,
+                            end: 36599,
+                            durationHms: "03:57:06",
+                        },
+                    },
                     startTime: "2026-04-06T17:56:00Z",
                     endTime: "2026-04-07T04:06:00Z",
                     durationSeconds: 36600.13,
@@ -297,6 +325,41 @@ describe("normalizeMissionMediaManifest", () => {
             sourcePageUrl: "https://commons.wikimedia.org/wiki/Category:Videos_of_Artemis_2",
             sourceCredit: "NASA",
             license: "Public domain",
+            captionTracks: [
+                {
+                    id: "caption-track-1",
+                    kind: "subtitles",
+                    label: "English transcript",
+                    srclang: "en",
+                    sourceUrl: "assets/artemis2/data/../media/streams/lunar-flyby/v1/flyby.en.webvtt",
+                    default: true,
+                    attribution: "Auto-generated transcript.",
+                },
+            ],
+            transcriptDoc: {
+                id: "flyby-broadcast-transcript",
+                sourceUrl: "assets/artemis2/data/../media/transcripts/flyby-combined.json",
+                label: "Diarized transcript",
+                attribution: "Auto-generated transcript.",
+            },
+            searchIndex: {
+                id: "flyby-broadcast-search-index",
+                sourceUrl: "assets/artemis2/data/../media/transcripts/flyby.index.json",
+                label: "",
+                attribution: "",
+            },
+            partOffsets: {
+                part1: {
+                    start: 0,
+                    end: 22373,
+                    durationHms: "06:12:53",
+                },
+                part2: {
+                    start: 22373,
+                    end: 36599,
+                    durationHms: "03:57:06",
+                },
+            },
         });
         expect(manifest.mediaStreams[0].syncAnchors).toEqual([
             {
@@ -320,6 +383,16 @@ describe("normalizeMissionMediaManifest", () => {
                     sourceUrl: "https://media.example.test/artemis2/flyby/master.m3u8",
                     startTime: "2026-04-06T17:56:00Z",
                     endTime: "2026-04-07T04:06:00Z",
+                    captionTracks: [
+                        {
+                            kind: "subtitles",
+                            label: "English transcript",
+                            srclang: "en",
+                            sourceUrl: "../media/streams/lunar-flyby/v1/flyby.en.webvtt",
+                            default: true,
+                            attribution: "Auto-generated transcript.",
+                        },
+                    ],
                     playbackRoles: ["background"],
                     backgroundPlayback: {
                         enabled: true,
@@ -344,6 +417,17 @@ describe("normalizeMissionMediaManifest", () => {
                 priority: 100,
                 fit: "cover",
             },
+            captionTracks: [
+                {
+                    id: "caption-track-1",
+                    kind: "subtitles",
+                    label: "English transcript",
+                    srclang: "en",
+                    sourceUrl: "assets/artemis2/data/../media/streams/lunar-flyby/v1/flyby.en.webvtt",
+                    default: true,
+                    attribution: "Auto-generated transcript.",
+                },
+            ],
         }));
     });
 

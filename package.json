@@ -23,6 +23,7 @@
     "configs:compile": "node scripts/compile-mission-configs.mjs",
     "configs:check": "node scripts/compile-mission-configs.mjs --check",
     "configs:lint": "node scripts/compile-mission-configs.mjs --check --lint-time-scale",
+    "captions:artemis2:broadcast": "node scripts/build-artemis2-broadcast-captions.mjs",
     "media:thumbnails": "node scripts/generate-media-thumbnails.mjs",
     "hooks:install": "git config core.hooksPath .githooks",
     "test:quick": "node test/quick-check.js",

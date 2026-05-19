@@ -317,6 +317,74 @@ function normalizeSourceMetadata(value) {
     };
 }
 
+function normalizeCaptionTrack(track, index, dataPath) {
+    if (!track || typeof track !== "object" || Array.isArray(track)) {
+        return null;
+    }
+    const sourceUrl = resolveMediaAssetUrl(track.sourceUrl || track.src || track.url, dataPath);
+    if (!sourceUrl) return null;
+    const kind = asTrimmedString(track.kind).toLowerCase();
+    const srclang = asTrimmedString(track.srclang || track.lang || track.language).toLowerCase();
+    return {
+        id: asTrimmedString(track.id) || `caption-track-${index + 1}`,
+        kind: kind || "subtitles",
+        label: asTrimmedString(track.label || track.title) || "Subtitles",
+        srclang: srclang || "en",
+        sourceUrl,
+        default: track.default === true,
+        attribution: asTrimmedString(track.attribution || track.sourceAttribution),
+    };
+}
+
+function normalizeCaptionTracks(value, dataPath) {
+    if (!Array.isArray(value)) return [];
+    return value
+        .map((track, index) => normalizeCaptionTrack(track, index, dataPath))
+        .filter(Boolean);
+}
+
+function normalizeMediaResourceRef(value, dataPath, defaultId = "") {
+    if (!value) return null;
+    if (typeof value === "string") {
+        const sourceUrl = resolveMediaAssetUrl(value, dataPath);
+        return sourceUrl
+            ? {
+                id: asTrimmedString(defaultId),
+                sourceUrl,
+                label: "",
+                attribution: "",
+            }
+            : null;
+    }
+    if (typeof value !== "object" || Array.isArray(value)) return null;
+    const sourceUrl = resolveMediaAssetUrl(value.sourceUrl || value.src || value.url || value.path, dataPath);
+    if (!sourceUrl) return null;
+    return {
+        id: asTrimmedString(value.id) || asTrimmedString(defaultId),
+        sourceUrl,
+        label: asTrimmedString(value.label || value.title),
+        attribution: asTrimmedString(value.attribution || value.sourceAttribution),
+    };
+}
+
+function normalizeStreamPartOffsets(value) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+    const result = {};
+    for (const [rawKey, rawOffset] of Object.entries(value)) {
+        const key = asTrimmedString(rawKey);
+        if (!key || !rawOffset || typeof rawOffset !== "object" || Array.isArray(rawOffset)) continue;
+        const start = toFiniteNumber(rawOffset.start);
+        const end = toFiniteNumber(rawOffset.end);
+        if (!Number.isFinite(start)) continue;
+        result[key] = {
+            start,
+            end: Number.isFinite(end) ? end : Number.NaN,
+            durationHms: asTrimmedString(rawOffset.durationHms),
+        };
+    }
+    return result;
+}
+
 function normalizeCameraProfiles(cameraProfiles = {}) {
     const normalizedProfiles = {};
 
@@ -753,6 +821,18 @@ function normalizeMediaStream(stream, index, dataPath, metadataByKey = new Map()
         sourceUrl: asTrimmedString(stream.sourceUrl),
         posterAssetUrl: resolveMediaAssetUrl(stream.posterAsset, dataPath),
         captions: normalizeTextArray(stream.captions),
+        captionTracks: normalizeCaptionTracks(stream.captionTracks || stream.transcriptTracks, dataPath),
+        transcriptDoc: normalizeMediaResourceRef(
+            stream.transcriptDoc || stream.transcriptDocument,
+            dataPath,
+            `${id}-transcript`,
+        ),
+        searchIndex: normalizeMediaResourceRef(
+            stream.searchIndex || stream.entityIndex,
+            dataPath,
+            `${id}-search-index`,
+        ),
+        partOffsets: normalizeStreamPartOffsets(stream.partOffsets),
         startTimeMs,
         endTimeMs,
         durationSeconds,
@@ -871,6 +951,10 @@ function normalizeMediaStreamItem(stream, index, dataPath, thumbnailConfig = {})
         availabilityStartPolicy: "",
         syncStatus: asTrimmedString(stream.syncStatus),
         syncAnchors: Array.isArray(stream.syncAnchors) ? stream.syncAnchors : [],
+        captionTracks: Array.isArray(stream.captionTracks) ? stream.captionTracks : [],
+        transcriptDoc: stream.transcriptDoc || null,
+        searchIndex: stream.searchIndex || null,
+        partOffsets: stream.partOffsets && typeof stream.partOffsets === "object" ? stream.partOffsets : {},
         defaultPanelState: asTrimmedString(stream.defaultPanelState),
     };
 }

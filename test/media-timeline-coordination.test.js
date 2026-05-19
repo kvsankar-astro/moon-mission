@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
+    getMissionMediaDataPath: vi.fn(),
     loadMissionMediaManifest: vi.fn(),
     panelRender: vi.fn(),
     panelSetMissionContext: vi.fn(),
@@ -9,6 +10,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("../src/platform/js/data/mission-media.js", () => ({
+    getMissionMediaDataPath: mocks.getMissionMediaDataPath,
     loadMissionMediaManifest: mocks.loadMissionMediaManifest,
 }));
 
@@ -106,6 +108,8 @@ describe("createMediaTimelineCoordination", () => {
         originalAudio = globalThis.Audio;
         originalHls = globalThis.Hls;
         globalThis.document = createDocumentStub();
+        mocks.getMissionMediaDataPath.mockReset();
+        mocks.getMissionMediaDataPath.mockReturnValue("assets/artemis2/data/");
         mocks.loadMissionMediaManifest.mockReset();
         mocks.panelRender.mockReset();
         mocks.panelSetMissionContext.mockReset();

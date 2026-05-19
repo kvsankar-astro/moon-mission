@@ -2393,6 +2393,16 @@
                             data-icon="speaker-muted"
                         ></button>
                         <button
+                            id="background-media-captions"
+                            class="background-media-panel__icon-button mission-panel-shell__button mission-panel-shell__button--icon"
+                            type="button"
+                            title="Hide subtitles"
+                            aria-pressed="true"
+                            aria-label="Hide subtitles"
+                            data-icon="captions"
+                            data-caption-status="shown"
+                        ></button>
+                        <button
                             id="background-media-panel-expand"
                             class="background-media-panel__icon-button mission-panel-shell__button mission-panel-shell__button--icon"
                             type="button"
@@ -2415,6 +2425,7 @@
                         class="background-media-panel__video"
                         playsinline
                         preload="metadata"
+                        crossorigin="anonymous"
                         muted
                     ></video>
                     <div id="background-media-empty" class="background-media-panel__empty">
@@ -2426,6 +2437,16 @@
                         class="background-media-panel__time-overlay"
                         hidden
                     >0:00</div>
+                    <div
+                        id="background-media-caption-text"
+                        class="background-media-panel__caption-text"
+                        hidden
+                    ></div>
+                    <div
+                        id="background-media-caption-attribution"
+                        class="background-media-panel__caption-attribution"
+                        hidden
+                    ></div>
                 </div>
                 <div id="background-media-controls" class="background-media-panel__controls">
                     <button
