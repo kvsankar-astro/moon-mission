@@ -90,9 +90,13 @@ export function createFocusPillController(deps = {}) {
     }
 
     function isAuxPanelVisible(panelId) {
-        return queryVisiblePanel(
-            `#aux-camera-views .aux-camera-view[data-panel-id="${panelId}"]:not([hidden])`,
-        );
+        return queryVisiblePanel(`.aux-camera-view[data-panel-id="${panelId}"]:not([hidden])`) ||
+            queryVisiblePanel(`#aux-camera-views .aux-camera-view[data-panel-id="${panelId}"]:not([hidden])`);
+    }
+
+    function isAuxComposerPanelVisible() {
+        return queryVisiblePanel(".aux-camera-view[data-mode=\"composer\"]:not([hidden])") ||
+            queryVisiblePanel("#aux-camera-views .aux-camera-view[data-mode=\"composer\"]:not([hidden])");
     }
 
     function syncFocusPillVisibility() {
@@ -134,9 +138,7 @@ export function createFocusPillController(deps = {}) {
         const craftMoonPill = getElement("panel-pill-craft-moon");
         const craftEarthPill = getElement("panel-pill-craft-earth");
         const earthOrbitXyPill = getElement("panel-pill-earth-orbit-xy");
-        const composerPanelVisible = !!documentRef?.querySelector?.(
-            "#aux-camera-views .aux-camera-view[data-mode=\"composer\"]:not([hidden])",
-        );
+        const composerPanelVisible = isAuxComposerPanelVisible();
         const groundTrackPanelVisible = !!documentRef?.querySelector?.(
             "#ground-track-panel:not(.ground-track-panel--hidden)",
         );
@@ -156,9 +158,7 @@ export function createFocusPillController(deps = {}) {
     }
 
     function isComposerPanelVisible() {
-        return !!documentRef?.querySelector?.(
-            "#aux-camera-views .aux-camera-view[data-mode=\"composer\"]:not([hidden])",
-        );
+        return isAuxComposerPanelVisible();
     }
 
     function isGroundTrackPanelVisible() {

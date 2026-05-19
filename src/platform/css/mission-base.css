@@ -64,6 +64,7 @@
     --ui-config-popover-z: 2147483000;
     --timeline-dock-height: 94px;
     --timeline-dock-offset: 6px;
+    --dockview-top-strip-height: 46px;
     --control-panel-visual-height: 0px;
 }
 
@@ -288,7 +289,7 @@ textarea {
     border-radius: 12px;
     background: rgba(10, 18, 32, 0.82);
     color: #dbe7ff;
-    font-size: 16px;
+    font-size: 0;
     font-weight: 700;
     line-height: 1;
     cursor: pointer;
@@ -297,6 +298,18 @@ textarea {
     justify-content: center;
     transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease;
     z-index: 2;
+}
+
+.header-pill-strip__toggle::before {
+    display: block;
+    width: 12px;
+    height: 2px;
+    border-radius: 999px;
+    background: currentColor;
+    box-shadow:
+        0 -4px 0 currentColor,
+        0 4px 0 currentColor;
+    content: "";
 }
 
 .header-pill-strip__toggle:hover {
@@ -318,6 +331,481 @@ textarea {
 
 #header-pill-strip.header-pill-strip--collapsed .header-pill-strip__row {
     display: none;
+}
+
+.dockview-panels-enabled .header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 22;
+    height: var(--dockview-top-strip-height);
+    overflow: hidden;
+    background: rgba(7, 10, 18, 0.92);
+    border-bottom: 1px solid rgba(83, 124, 184, 0.28);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.26);
+    backdrop-filter: blur(10px);
+}
+
+.dockview-panels-enabled .navbar {
+    height: var(--dockview-top-strip-height);
+    min-height: var(--dockview-top-strip-height);
+    padding: 4px 10px;
+    gap: 10px;
+}
+
+.dockview-panels-enabled #settings-panel-button,
+.dockview-panels-enabled #blurb-toggle {
+    display: none;
+}
+
+.dockview-panels-enabled .blurb {
+    flex: 0 1 360px;
+    max-width: min(360px, 32vw);
+}
+
+.dockview-panels-enabled .blurb__row {
+    align-items: center;
+}
+
+.dockview-panels-enabled .blurb__details {
+    display: block;
+    max-height: 16px;
+    margin-top: 0;
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
+}
+
+.dockview-panels-enabled .blurb__details p:not(#mission-summary) {
+    display: none;
+}
+
+.dockview-panels-enabled #mission-summary {
+    overflow: hidden;
+    color: rgba(190, 208, 238, 0.82);
+    font-size: 10px;
+    line-height: 1.2;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.dockview-panel-launch-strip {
+    position: relative;
+    display: flex;
+    flex: 1 1 auto;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 5px;
+    min-width: 0;
+    overflow: visible;
+}
+
+.dockview-orbit-details-popover {
+    position: fixed;
+    top: calc(var(--dockview-top-strip-height) + 6px);
+    right: 76px;
+    z-index: 34;
+    width: min(220px, 40vw);
+    padding: 7px;
+    border: 1px solid rgba(83, 124, 184, 0.32);
+    border-radius: 8px;
+    background: rgba(7, 12, 22, 0.88);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.32);
+    backdrop-filter: blur(8px);
+}
+
+.dockview-orbit-details-popover[hidden] {
+    display: none !important;
+}
+
+.dockview-panel-launch-strip__pill {
+    flex: 0 1 auto;
+    min-width: 0;
+    height: 24px;
+    padding: 0 8px;
+    overflow: hidden;
+    border: 1px solid rgba(121, 171, 255, 0.36);
+    border-radius: 7px;
+    background: rgba(9, 20, 36, 0.9);
+    color: #dceaff;
+    font-family: var(--ui-font-condensed);
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 22px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.dockview-panel-launch-strip__pill:hover,
+.dockview-panel-launch-strip__pill:focus-visible {
+    border-color: rgba(127, 211, 255, 0.72);
+    background: rgba(37, 75, 122, 0.42);
+    outline: none;
+}
+
+.dockview-panel-launch-strip__pill[aria-pressed="true"],
+.dockview-panel-launch-strip__pill[aria-expanded="true"] {
+    border-color: rgba(184, 212, 138, 0.68);
+    background: rgba(118, 150, 74, 0.24);
+    color: #f0ffd3;
+}
+
+.dockview-panel-launch-strip__pill--controls {
+    margin-left: 4px;
+    border-color: rgba(127, 211, 255, 0.46);
+    color: #c9efff;
+}
+
+.dockview-panel-launch-strip__pill--reset-view {
+    border-color: rgba(127, 211, 255, 0.42);
+    color: #d8ecff;
+}
+
+.dockview-panels-enabled .mission-main-view-pane #header-pill-strip {
+    position: absolute;
+    top: 52px;
+    left: 10px;
+    right: auto;
+    z-index: 18;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    row-gap: 7px;
+    width: max-content;
+    max-height: calc(100% - 20px);
+    padding: 8px 10px 8px 50px;
+    overflow: visible;
+    border: 1px solid rgba(83, 124, 184, 0.32);
+    border-radius: 8px;
+    background: rgba(7, 12, 22, 0.82);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.32);
+    opacity: 1;
+    transform: translateY(0);
+    visibility: visible;
+    backdrop-filter: blur(8px);
+}
+
+.dockview-panels-enabled .mission-main-view-pane #header-pill-strip.header-pill-strip--collapsed {
+    top: 10px;
+    width: 32px;
+    height: 32px;
+    min-height: 0;
+    padding: 0;
+    overflow: visible;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+}
+
+.dockview-panels-enabled .mission-main-view-pane #header-pill-strip .header-pill-strip__toggle {
+    left: 10px;
+    top: 8px;
+    bottom: auto;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+}
+
+.dockview-panels-enabled .mission-main-view-pane #header-pill-strip:not(.header-pill-strip--collapsed) .header-pill-strip__toggle {
+    transform: translateX(-2px);
+}
+
+.dockview-panels-enabled .mission-main-view-pane #header-pill-strip.header-pill-strip--collapsed .header-pill-strip__toggle {
+    left: 0;
+    top: 0;
+    bottom: auto;
+    width: 32px;
+    height: 32px;
+}
+
+.dockview-panels-enabled .mission-main-view-pane #header-pill-strip.header-pill-strip--collapsed #advanced-controls-pill-wrap {
+    display: none;
+}
+
+.dockview-panels-enabled .mission-main-view-pane .mission-main-view-annotation-bar {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    z-index: 18;
+    display: flex;
+    justify-content: center;
+    min-width: 0;
+    pointer-events: all;
+    transform: translateX(-50%);
+}
+
+.dockview-panels-enabled .mission-main-view-pane .mission-main-view-annotation-bar #header-pill-strip-quaternary {
+    display: flex;
+    width: auto;
+    max-width: 100%;
+    min-width: 0;
+    padding: 0;
+    overflow: hidden;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+}
+
+.dockview-panels-enabled .mission-main-view-pane .mission-main-view-annotation-bar #header-pill-strip-quaternary > .header-pill-segment {
+    display: flex;
+    gap: 5px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+.dockview-panels-enabled .mission-main-view-pane .mission-main-view-view-launcher__body {
+    position: absolute;
+    top: 40px;
+    left: 50%;
+    z-index: 19;
+    display: grid;
+    width: min(360px, calc(100vw - 24px));
+    max-height: min(360px, calc(100% - 52px));
+    gap: 7px;
+    padding: 10px 28px 10px 10px;
+    overflow: hidden auto;
+    border: 1px solid rgba(83, 124, 184, 0.32);
+    border-radius: 8px;
+    background: rgba(7, 12, 22, 0.86);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.32);
+    transform: translateX(-50%);
+    backdrop-filter: blur(8px);
+}
+
+.dockview-panels-enabled .mission-main-view-pane .mission-main-view-view-launcher__header {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.dockview-panels-enabled .mission-main-view-pane .mission-main-view-view-launcher__title {
+    display: none;
+}
+
+.dockview-panels-enabled .mission-main-view-pane .mission-main-view-view-launcher__body[hidden] {
+    display: none !important;
+}
+
+.dockview-panels-enabled .mission-main-view-pane .mission-main-view-lunar-toggle {
+    position: absolute;
+    top: 52px;
+    right: 10px;
+    z-index: 18;
+    pointer-events: all;
+}
+
+.dockview-panels-enabled .mission-main-view-pane .mission-main-view-lunar-toggle .header-pill-group__label {
+    display: none;
+}
+
+.dockview-panels-enabled .mission-main-view-pane .mission-main-view-lunar-toggle #moon-profile-pill-fast[hidden] {
+    display: none !important;
+}
+
+.dockview-panels-enabled .mission-main-view-pane .mission-main-view-toggle-launcher__body .mission-main-view-lunar-toggle-item {
+    display: block;
+    width: min(210px, 34vw);
+}
+
+.dockview-panels-enabled .mission-main-view-pane .mission-main-view-toggle-launcher__body .mission-main-view-lunar-toggle-item .header-pill-group__label,
+.dockview-panels-enabled .mission-main-view-pane .mission-main-view-toggle-launcher__body .mission-main-view-lunar-toggle-item #moon-profile-pill-fast[hidden] {
+    display: none !important;
+}
+
+.dockview-panels-enabled .mission-main-view-pane .mission-main-view-toggle-launcher__body #header-pill-strip-tertiary .header-pill-group__label {
+    display: none !important;
+}
+
+.dockview-panels-enabled .mission-main-view-pane .mission-main-view-toggle-launcher__body .mission-main-view-lunar-toggle-item .header-pill-segment {
+    display: block;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+.dockview-panels-enabled .mission-main-view-pane .mission-main-view-toggle-launcher__body .mission-main-view-lunar-toggle-item #moon-profile-pill-quality {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    height: 22px;
+    padding: 0 8px;
+    overflow: hidden;
+    border: 1px solid rgba(100, 130, 180, 0.44);
+    border-radius: 999px;
+    background: rgba(10, 18, 32, 0.82);
+    color: #aebbd2;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0;
+    line-height: 20px;
+    text-align: left;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.dockview-panels-enabled .mission-main-view-pane .mission-main-view-toggle-launcher__body .mission-main-view-lunar-toggle-item #moon-profile-pill-quality:hover,
+.dockview-panels-enabled .mission-main-view-pane .mission-main-view-toggle-launcher__body .mission-main-view-lunar-toggle-item #moon-profile-pill-quality[aria-pressed="true"] {
+    border-color: rgba(120, 170, 255, 0.72);
+    background: rgba(77, 141, 255, 0.22);
+    color: var(--header-pill-current-color);
+}
+
+.dockview-panels-enabled .mission-main-view-pane .mission-main-view-toggle-launcher {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 19;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    pointer-events: all;
+}
+
+.dockview-panels-enabled .mission-main-view-pane .mission-main-view-toggle-launcher__button {
+    position: relative;
+    width: 32px;
+    height: 32px;
+    border: 1px solid rgba(100, 130, 180, 0.5);
+    border-radius: 8px;
+    background: rgba(10, 18, 32, 0.86);
+    color: #dbe7ff;
+    cursor: pointer;
+}
+
+.dockview-panels-enabled .mission-main-view-pane .mission-main-view-toggle-launcher__button::before,
+.dockview-panels-enabled .mission-main-view-pane .mission-main-view-toggle-launcher__button::after {
+    position: absolute;
+    left: 8px;
+    right: 8px;
+    height: 2px;
+    border-radius: 999px;
+    background: currentColor;
+    content: "";
+}
+
+.dockview-panels-enabled .mission-main-view-pane .mission-main-view-toggle-launcher__button::before {
+    top: 10px;
+    box-shadow: 0 5px 0 currentColor;
+}
+
+.dockview-panels-enabled .mission-main-view-pane .mission-main-view-toggle-launcher__button::after {
+    top: 20px;
+}
+
+.dockview-panels-enabled .mission-main-view-pane .mission-main-view-toggle-launcher__body {
+    display: none;
+    margin-top: 6px;
+    padding: 7px;
+    border: 1px solid rgba(83, 124, 184, 0.32);
+    border-radius: 8px;
+    background: rgba(7, 12, 22, 0.82);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.32);
+    backdrop-filter: blur(8px);
+}
+
+.dockview-panels-enabled .mission-main-view-pane .mission-main-view-toggle-launcher:hover .mission-main-view-toggle-launcher__body,
+.dockview-panels-enabled .mission-main-view-pane .mission-main-view-toggle-launcher:focus-within .mission-main-view-toggle-launcher__body {
+    display: block;
+}
+
+.dockview-panels-enabled .header-pill-group--panels,
+.dockview-panels-enabled .mission-main-view-pane #compare-pill-wrap {
+    display: none;
+}
+
+.dockview-panels-enabled .mission-main-view-pane #header-pill-strip .header-pill-strip__row {
+    justify-content: flex-start;
+    align-content: flex-start;
+    gap: 5px;
+    min-width: 0;
+}
+
+.dockview-panels-enabled .mission-main-view-pane .mission-main-view-view-launcher__body .header-pill-strip__row {
+    justify-content: flex-start;
+    align-content: flex-start;
+}
+
+.dockview-panels-enabled .mission-main-view-pane .mission-main-view-view-launcher__body .mission-main-view-advanced-pill {
+    justify-self: start;
+    margin-top: 2px;
+}
+
+.dockview-panels-enabled .mission-main-view-pane #header-pill-strip-primary {
+    grid-column: 1;
+    grid-row: 1;
+}
+
+.dockview-panels-enabled .mission-main-view-pane #header-pill-strip-secondary {
+    grid-column: 1;
+    grid-row: 2;
+    align-self: start;
+}
+
+.dockview-orbit-details-popover #header-pill-strip-tertiary,
+.dockview-panels-enabled .mission-main-view-pane .mission-main-view-toggle-launcher #header-pill-strip-tertiary {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 4px;
+    width: min(210px, 34vw);
+    max-height: min(360px, calc(100vh - var(--dockview-top-strip-height) - 130px));
+    overflow: hidden auto;
+    scrollbar-width: none;
+}
+
+.dockview-orbit-details-popover #header-pill-strip-tertiary::-webkit-scrollbar,
+.dockview-panels-enabled .mission-main-view-pane .mission-main-view-toggle-launcher #header-pill-strip-tertiary::-webkit-scrollbar {
+    display: none;
+}
+
+.dockview-orbit-details-popover #header-pill-strip-tertiary .header-toggle-pill,
+.dockview-panels-enabled .mission-main-view-pane .mission-main-view-toggle-launcher #header-pill-strip-tertiary .header-toggle-pill {
+    width: 100%;
+    min-width: 0;
+    height: 22px;
+    padding: 0 8px;
+    overflow: hidden;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0;
+    line-height: 20px;
+    text-align: left;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.dockview-panels-enabled .mission-main-view-pane #header-pill-strip .header-pill-group {
+    gap: 4px;
+}
+
+.dockview-panels-enabled .mission-main-view-pane #header-pill-strip .header-pill-group__label {
+    min-width: 48px;
+    font-size: 9px;
+}
+
+.dockview-panels-enabled .mission-main-view-pane #header-pill-strip .header-pill-segment__btn {
+    min-width: 30px;
+    height: 20px;
+    padding: 0 6px;
+    font-size: 9px;
+}
+
+.dockview-panels-enabled .mission-main-view-pane #header-pill-strip .header-pill-segment {
+    max-width: 100%;
+    overflow: hidden;
 }
 
 .header-pill-strip__row {
@@ -669,15 +1157,14 @@ textarea {
 
 .guides-controls-panel__close,
 .surface-points-controls-panel__close {
-    border: 1px solid rgba(121, 171, 255, 0.34);
-    border-radius: 999px;
-    background: rgba(12, 24, 44, 0.9);
-    color: #dce8ff;
-    font-size: 8px;
-    font-weight: 700;
-    text-transform: uppercase;
-    padding: 2px 8px;
-    cursor: pointer;
+    display: inline-grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border-radius: 5px;
+    font-size: 0;
+    line-height: 1;
 }
 
 .guides-controls-panel__close:hover,
@@ -786,15 +1273,14 @@ textarea {
 }
 
 .lunar-crater-controls-panel__close {
-    border: 1px solid rgba(121, 171, 255, 0.34);
-    border-radius: 999px;
-    background: rgba(12, 24, 44, 0.9);
-    color: #dce8ff;
-    font-size: 8px;
-    font-weight: 700;
-    text-transform: uppercase;
-    padding: 2px 8px;
-    cursor: pointer;
+    display: inline-grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border-radius: 5px;
+    font-size: 0;
+    line-height: 1;
 }
 
 .lunar-crater-controls-panel__close:hover {

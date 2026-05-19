@@ -15,7 +15,17 @@ export function createHeaderPillStripController(deps = {}) {
         ? deps.clearTimeoutImpl
         : windowRef.clearTimeout?.bind(windowRef) || clearTimeout;
 
-    let manualCollapsed = false;
+    function shouldStartCollapsedForDockview() {
+        const params = new URLSearchParams(windowRef?.location?.search || "");
+        const legacyPanels = String(params.get("legacyPanels") || "").trim().toLowerCase();
+        if (["1", "true", "yes"].includes(legacyPanels)) return false;
+        const dockPanels = String(params.get("dockPanels") || "").trim().toLowerCase();
+        if (["0", "false", "no"].includes(dockPanels)) return false;
+        if (["1", "true", "yes"].includes(dockPanels)) return true;
+        return (Number(windowRef?.innerWidth) || 0) > 600;
+    }
+
+    let manualCollapsed = deps.initialCollapsed === true || shouldStartCollapsedForDockview();
     let autoCollapsed = false;
     let lastAutoRevealAt = 0;
     let groupsExpanded = false;
@@ -46,14 +56,19 @@ export function createHeaderPillStripController(deps = {}) {
         const strip = documentRef.getElementById("header-pill-strip");
         const toggle = documentRef.getElementById("header-pill-strip-toggle");
         if (!strip || !toggle) return;
-        const collapsed = isEffectivelyCollapsed();
         const mobileLayout = isMobileControlLayout();
+        const dockviewMainViewLayout = documentRef?.body?.classList?.contains?.("dockview-panels-enabled") &&
+            strip.parentElement?.classList?.contains?.("mission-main-view-pane") &&
+            !mobileLayout;
+        const collapsed = isEffectivelyCollapsed();
         strip.classList.toggle("header-pill-strip--collapsed", collapsed);
         strip.classList.toggle(
             "header-pill-strip--groups-expanded",
-            !collapsed && (groupsExpanded || mobileLayout),
+            !collapsed && (dockviewMainViewLayout || groupsExpanded || mobileLayout),
         );
-        toggle.textContent = collapsed ? "›" : "‹";
+        toggle.hidden = false;
+        toggle.textContent = "";
+        toggle.dataset.state = collapsed ? "collapsed" : "expanded";
         toggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
         toggle.setAttribute(
             "aria-label",

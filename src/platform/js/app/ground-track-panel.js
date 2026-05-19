@@ -16,6 +16,10 @@ import {
     isMissionPanelEnabled,
     shouldMissionPanelAutoOpenBeforeEvent,
 } from "./panel-defaults.js";
+import {
+    getDockviewSpikeLayoutHost,
+    resolveDockedWorkflowPanelPosition,
+} from "./dockview-workflow-panels.js";
 import { bringPanelElementToFront } from "./panel-z-order.js";
 import { resolveCurrentMissionKey } from "../core/domain/current-mission.js";
 import { resolveRuntimeAssetUrl } from "../core/domain/runtime-asset-url.js";
@@ -446,6 +450,7 @@ function createGroundTrackPanelActions(options = {}) {
     let selectedGroundTrackEventTimeMs = Number.NaN;
     let autoOpenScheduled = false;
     let panelVisibilityState = "closed";
+    let dockedLayoutResizeFrame = 0;
     let restoredPanelLayout = readMissionPanelState(GROUND_TRACK_PANEL_REGISTRY_ID) || null;
     let hasRestoredPanelLayout = !!restoredPanelLayout;
     let panelExpanded = restoredPanelLayout?.maximized === true || hasRestoredPanelLayout !== true;
@@ -475,6 +480,46 @@ function createGroundTrackPanelActions(options = {}) {
     };
 
     const getNode = (id) => document.getElementById(id);
+
+    function isDockviewGroundTrackPanelEnabled() {
+        return !!getDockviewSpikeLayoutHost();
+    }
+
+    function isGroundTrackPanelDocked(panel = getNode("ground-track-panel")) {
+        return !!panel?.classList?.contains?.("ground-track-panel--dockview");
+    }
+
+    function ensureGroundTrackPanelDocked(panel = getNode("ground-track-panel")) {
+        if (!isDomInstance(panel, "HTMLElement")) return false;
+        const layoutHost = getDockviewSpikeLayoutHost();
+        if (!layoutHost) return false;
+        if (layoutHost.focusPanel(GROUND_TRACK_PANEL_REGISTRY_ID)) {
+            return true;
+        }
+        const position = resolveDockedWorkflowPanelPosition(layoutHost, GROUND_TRACK_PANEL_REGISTRY_ID);
+        layoutHost.addPanel({
+            id: GROUND_TRACK_PANEL_REGISTRY_ID,
+            component: "mounted-element",
+            title: "Splashdown in Spotlight",
+            position,
+            params: {
+                mountElementId: "ground-track-panel",
+                mountClassName: "ground-track-panel--dockview",
+                fallbackParentId: "ground-track-panel-wrapper",
+            },
+            initialHeight: 300,
+            minimumWidth: 300,
+            minimumHeight: 220,
+        });
+        layoutHost.focusPanel(GROUND_TRACK_PANEL_REGISTRY_ID);
+        return true;
+    }
+
+    function closeDockedGroundTrackPanel() {
+        const layoutHost = getDockviewSpikeLayoutHost();
+        if (!layoutHost) return false;
+        return layoutHost.closePanel(GROUND_TRACK_PANEL_REGISTRY_ID);
+    }
 
     function isRelativeFrameActive(config) {
         if (config === "relative") return true;
@@ -672,6 +717,13 @@ function createGroundTrackPanelActions(options = {}) {
 
     function persistPanelLayoutState(panel = getNode("ground-track-panel")) {
         if (!isDomInstance(panel, "HTMLElement")) {
+            return;
+        }
+        if (isGroundTrackPanelDocked(panel)) {
+            writeMissionPanelState(GROUND_TRACK_PANEL_REGISTRY_ID, {
+                state: panelVisibilityState,
+                maximized: false,
+            });
             return;
         }
         writeMissionPanelState(GROUND_TRACK_PANEL_REGISTRY_ID, {
@@ -1662,6 +1714,14 @@ function createGroundTrackPanelActions(options = {}) {
     }
 
     function resolveDefaultPanelPosition(panel) {
+        if (!panel) {
+            return clampPanelRect({
+                x: PANEL_DEFAULT_LEFT_PX,
+                y: PANEL_EDGE_MARGIN_PX,
+                width: 400,
+                height: 320,
+            });
+        }
         const width = Math.max(panel.offsetWidth || 400, 280);
         const height = Math.max(panel.offsetHeight || 320, 220);
         const timelineHeight = readCssPx("--timeline-dock-height", 88);
@@ -1705,6 +1765,7 @@ function createGroundTrackPanelActions(options = {}) {
 
     function applyComposerPanelPlacement(panel) {
         if (!panel) return false;
+        if (isGroundTrackPanelDocked(panel)) return false;
         const rect = resolveComposerPanelRect() || resolveComposerFallbackRect();
         if (!rect) return false;
         panel.style.width = `${Math.round(rect.width)}px`;
@@ -1724,6 +1785,7 @@ function createGroundTrackPanelActions(options = {}) {
 
     function applyPanelPosition(panel, x, y) {
         if (!panel) return;
+        if (isGroundTrackPanelDocked(panel)) return;
         const width = Math.max(panel.offsetWidth || 400, 280);
         const height = Math.max(panel.offsetHeight || 320, 220);
         const clamped = clampPanelRect({ x, y, width, height });
@@ -1733,8 +1795,10 @@ function createGroundTrackPanelActions(options = {}) {
     }
 
     function clampPanelPosition(panel) {
+        if (!panel) return;
         if (!panelPosition) {
-            applyPanelPosition(panel, resolveDefaultPanelPosition(panel).x, resolveDefaultPanelPosition(panel).y);
+            const initial = resolveDefaultPanelPosition(panel);
+            applyPanelPosition(panel, initial.x, initial.y);
             return;
         }
         applyPanelPosition(panel, panelPosition.x, panelPosition.y);
@@ -1742,6 +1806,7 @@ function createGroundTrackPanelActions(options = {}) {
 
     function ensurePanelPosition(panel) {
         if (!panel) return;
+        if (isGroundTrackPanelDocked(panel)) return;
         if (!panelPosition) {
             const initial = resolveDefaultPanelPosition(panel);
             applyPanelPosition(panel, initial.x, initial.y);
@@ -1760,6 +1825,7 @@ function createGroundTrackPanelActions(options = {}) {
         if (!panel || !header) return;
 
         const onPointerDown = (event) => {
+            if (isGroundTrackPanelDocked(panel)) return;
             if (panelExpanded === true) return;
             if (!shouldStartDrag(event)) return;
             const rect = panel.getBoundingClientRect();
@@ -1827,6 +1893,20 @@ function createGroundTrackPanelActions(options = {}) {
         orientGlobeToTrack(currentLocation, currentSegments);
     }
 
+    function scheduleDockedSurfaceResize() {
+        if (dockedLayoutResizeFrame) {
+            return;
+        }
+        const schedule = typeof requestAnimationFrame === "function"
+            ? requestAnimationFrame
+            : (callback) => setTimeout(callback, 0);
+        dockedLayoutResizeFrame = schedule(() => {
+            dockedLayoutResizeFrame = 0;
+            map?.invalidateSize(false);
+            resizeGlobe();
+        });
+    }
+
     function setViewMode(mode) {
         panelMode = mode === VIEW_MODE_3D ? VIEW_MODE_3D : VIEW_MODE_2D;
         syncVisibleView();
@@ -1834,6 +1914,14 @@ function createGroundTrackPanelActions(options = {}) {
 
     function setPanelExpanded(expanded, panel = getNode("ground-track-panel")) {
         if (!isDomInstance(panel, "HTMLElement")) {
+            return;
+        }
+        if (isGroundTrackPanelDocked(panel)) {
+            panelExpanded = false;
+            panel.classList.remove("is-maximized");
+            syncExpandButton();
+            persistPanelLayoutState(panel);
+            syncVisibleView();
             return;
         }
         const nextExpanded = expanded === true;
@@ -1867,6 +1955,7 @@ function createGroundTrackPanelActions(options = {}) {
     }
 
     function bringPanelToFront() {
+        if (isGroundTrackPanelDocked()) return;
         bringPanelElementToFront(getNode("ground-track-panel-wrapper"));
     }
 
@@ -1886,6 +1975,13 @@ function createGroundTrackPanelActions(options = {}) {
         if (!panel) return;
         const isVisible = resolvedState === "open";
         const shouldMaximizeOnOpen = isVisible && previousState !== "open";
+        if (isDockviewGroundTrackPanelEnabled()) {
+            if (isVisible) {
+                ensureGroundTrackPanelDocked(panel);
+            } else if (isGroundTrackPanelDocked(panel)) {
+                closeDockedGroundTrackPanel();
+            }
+        }
         panel.classList.toggle("ground-track-panel--hidden", !isVisible);
         document.dispatchEvent(new CustomEvent("ground-track-panel-visibilitychange", {
             detail: {
@@ -1896,6 +1992,18 @@ function createGroundTrackPanelActions(options = {}) {
         syncPanelRegistry();
         if (!isVisible) {
             persistPanelLayoutState(panel);
+            return;
+        }
+        if (isGroundTrackPanelDocked(panel)) {
+            panelExpanded = false;
+            panel.classList.remove("is-maximized");
+            syncExpandButton();
+            persistPanelLayoutState(panel);
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    syncVisibleView();
+                });
+            });
             return;
         }
         bringPanelToFront();
@@ -1941,7 +2049,6 @@ function createGroundTrackPanelActions(options = {}) {
 
     function ensurePanelEventsBound() {
         if (initialized) return;
-        initialized = true;
 
         const toggleButton = getNode("ground-track-button");
         const zoomInButton = getNode("ground-track-zoom-in");
@@ -1965,6 +2072,11 @@ function createGroundTrackPanelActions(options = {}) {
         let expandButton = getNode("ground-track-panel-expand");
         let infoButton = getNode("ground-track-panel-info");
         let deleteButton = getNode("ground-track-panel-delete");
+
+        if (!isDomInstance(panel, "HTMLElement")) {
+            return;
+        }
+        initialized = true;
 
         if (isDomInstance(panel, "HTMLElement")) {
             const persistedWidth = Number(restoredPanelLayout?.width);
@@ -2037,13 +2149,23 @@ function createGroundTrackPanelActions(options = {}) {
 
         bindPanelDragging(panel, header);
         panel?.addEventListener?.("pointerdown", bringPanelToFront, true);
-        if (panelExpanded === true) {
+        if (panelVisibilityState === "open" && isDockviewGroundTrackPanelEnabled()) {
+            ensureGroundTrackPanelDocked(panel);
+        }
+        if (isGroundTrackPanelDocked(panel)) {
+            panelExpanded = false;
+            panel.classList.remove("is-maximized");
+        } else if (panelExpanded === true) {
             applyExpandedPanelRect(panel);
         } else {
             clampPanelPosition(panel);
         }
         panel?.classList.toggle("ground-track-panel--hidden", panelVisibilityState !== "open");
         syncExpandButton(expandButton);
+        panel?.addEventListener?.("moon-mission:dockview-panel-layout", () => {
+            if (panel.classList.contains("ground-track-panel--hidden")) return;
+            scheduleDockedSurfaceResize();
+        });
 
         if (toggleButton && panel) {
             toggleButton.addEventListener("click", () => {
@@ -2132,6 +2254,11 @@ function createGroundTrackPanelActions(options = {}) {
         if (panel && typeof ResizeObserver !== "undefined") {
             resizeObserver = new ResizeObserver(() => {
                 if (panel.classList.contains("ground-track-panel--hidden")) return;
+                if (isGroundTrackPanelDocked(panel)) {
+                    persistPanelLayoutState(panel);
+                    scheduleDockedSurfaceResize();
+                    return;
+                }
                 if (panelExpanded === true) {
                     applyExpandedPanelRect(panel);
                 } else {
@@ -2147,6 +2274,11 @@ function createGroundTrackPanelActions(options = {}) {
         window.addEventListener("resize", () => {
             if (!panel) return;
             if (!panel.classList.contains("ground-track-panel--hidden")) {
+                if (isGroundTrackPanelDocked(panel)) {
+                    persistPanelLayoutState(panel);
+                    scheduleDockedSurfaceResize();
+                    return;
+                }
                 if (panelExpanded === true) {
                     applyExpandedPanelRect(panel);
                 } else {

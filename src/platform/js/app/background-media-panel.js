@@ -10,6 +10,10 @@ import {
     getMissionPanelDefaultState,
     isMissionPanelEnabled,
 } from "./panel-defaults.js";
+import {
+    getDockviewSpikeLayoutHost,
+    resolveDockedWorkflowPanelPosition,
+} from "./dockview-workflow-panels.js";
 import { bringPanelElementToFront } from "./panel-z-order.js";
 import {
     formatDateTimeLocal,
@@ -863,6 +867,45 @@ function createBackgroundMediaPanelActions({
         return getNode("background-media-panel-wrapper");
     }
 
+    function isDockviewBackgroundMediaPanelEnabled() {
+        return !!getDockviewSpikeLayoutHost();
+    }
+
+    function isBackgroundMediaPanelDocked(panel = getPanel()) {
+        return !!panel?.classList?.contains?.("background-media-panel--dockview");
+    }
+
+    function ensureBackgroundMediaPanelDocked(panel = getPanel()) {
+        if (!panel) return false;
+        const layoutHost = getDockviewSpikeLayoutHost();
+        if (!layoutHost) return false;
+        if (layoutHost.focusPanel(BACKGROUND_MEDIA_PANEL_ID)) {
+            return true;
+        }
+        layoutHost.addPanel({
+            id: BACKGROUND_MEDIA_PANEL_ID,
+            component: "mounted-element",
+            title: "Flyby Broadcast",
+            position: resolveDockedWorkflowPanelPosition(layoutHost, BACKGROUND_MEDIA_PANEL_ID),
+            params: {
+                mountElementId: "background-media-panel",
+                mountClassName: "background-media-panel--dockview",
+                fallbackParentId: "background-media-panel-wrapper",
+            },
+            initialWidth: 300,
+            minimumWidth: 260,
+            minimumHeight: MIN_PANEL_HEIGHT_PX,
+        });
+        layoutHost.focusPanel(BACKGROUND_MEDIA_PANEL_ID);
+        return true;
+    }
+
+    function closeDockedBackgroundMediaPanel() {
+        const layoutHost = getDockviewSpikeLayoutHost();
+        if (!layoutHost) return false;
+        return layoutHost.closePanel(BACKGROUND_MEDIA_PANEL_ID);
+    }
+
     function getVideo() {
         return getNode("background-media-video");
     }
@@ -1282,13 +1325,26 @@ function createBackgroundMediaPanelActions({
         const panel = getPanel();
         if (!wrapper || !panel) return;
         const visible = panelAvailable && panelState === "open";
-        setNodeHidden(wrapper, !visible);
+        if (isDockviewBackgroundMediaPanelEnabled()) {
+            if (visible) {
+                ensureBackgroundMediaPanelDocked(panel);
+            } else if (isBackgroundMediaPanelDocked(panel)) {
+                closeDockedBackgroundMediaPanel();
+            }
+        }
+        const docked = isBackgroundMediaPanelDocked(panel);
+        if (docked) {
+            expanded = false;
+        }
+        setNodeHidden(wrapper, docked || !visible);
         setClassToggled(panel, "background-media-panel--hidden", !visible);
         setClassToggled(panel, "is-maximized", expanded);
         if (!visible) {
             panelLayoutApplied = false;
         }
-        if (visible) {
+        if (visible && docked) {
+            panelLayoutApplied = true;
+        } else if (visible) {
             if (expanded) {
                 const expandedRect = {
                     left: `${PANEL_EDGE_MARGIN_PX}px`,
@@ -1319,6 +1375,7 @@ function createBackgroundMediaPanelActions({
     }
 
     function bringPanelToFront() {
+        if (isBackgroundMediaPanelDocked()) return;
         bringPanelElementToFront(getWrapper());
     }
 
@@ -1339,6 +1396,7 @@ function createBackgroundMediaPanelActions({
     }
 
     function shouldStartPanelDrag(event) {
+        if (isBackgroundMediaPanelDocked()) return false;
         if (event.button !== 0 || expanded === true) return false;
         const target = event?.target;
         if (!target || typeof target.closest !== "function") return true;
@@ -1485,6 +1543,7 @@ function createBackgroundMediaPanelActions({
         };
 
         panel.addEventListener?.("pointerdown", (event) => {
+            if (isBackgroundMediaPanelDocked(panel)) return;
             if (event.button !== 0 || expanded === true) return;
             if (event.target?.closest?.("input, button, select, option, label, output, a")) {
                 return;
@@ -1560,10 +1619,19 @@ function createBackgroundMediaPanelActions({
     function focusPanel() {
         const panel = getPanel();
         if (!panel || panel.classList.contains("background-media-panel--hidden")) return;
+        if (isBackgroundMediaPanelDocked(panel)) {
+            getDockviewSpikeLayoutHost()?.focusPanel?.(BACKGROUND_MEDIA_PANEL_ID);
+        }
         panel.focus?.();
     }
 
     function toggleExpanded() {
+        if (isBackgroundMediaPanelDocked()) {
+            expanded = false;
+            persistState();
+            syncPanelVisibility();
+            return;
+        }
         const wasExpanded = expanded === true;
         expanded = !expanded;
         persistState();
@@ -1757,7 +1825,11 @@ function createBackgroundMediaPanelActions({
         const panel = getTranscriptPanel();
         const status = getTranscriptStatus();
         setNodeHidden(panel, false);
-        setClassToggled(getPanel(), "background-media-panel--with-transcript", true);
+        setClassToggled(
+            getPanel(),
+            "background-media-panel--with-transcript",
+            !isDockviewBackgroundMediaPanelEnabled(),
+        );
         const entry = ensureTranscriptDocumentLoaded(sourceUrl, onLoaded);
         if (entry?.status !== "ready") {
             setNodeText(status, entry?.status === "error" ? "Transcript unavailable" : "Loading transcript");

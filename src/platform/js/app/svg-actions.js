@@ -16,9 +16,25 @@ export function createSvgActions({
     getOffsetY,
     updateProgressLabel,
 }) {
+    function getDockedMainViewRect() {
+        const surface = document.getElementById("mission-main-view-surface");
+        const rect = surface?.getBoundingClientRect?.() || null;
+        if (!rect || rect.width <= 1 || rect.height <= 1) {
+            return null;
+        }
+        return rect;
+    }
+
     function computeSVGDimensions() {
-        const width = window.innerWidth;
-        const height = window.innerHeight;
+        const dockedRect = getDockedMainViewRect();
+        const panelWidth = Math.max(1, Math.round(dockedRect?.width || 0));
+        const panelHeight = Math.max(1, Math.round(dockedRect?.height || 0));
+        const width = dockedRect
+            ? panelWidth
+            : Math.max(1, Math.round(Number(window.innerWidth) || 1));
+        const height = dockedRect
+            ? panelHeight
+            : Math.max(1, Math.round(Number(window.innerHeight) || 1));
         setSvgX(0);
         const baseline = document.getElementById("svg-top-baseline");
         setSvgY(baseline ? baseline.getBoundingClientRect().top : 0);

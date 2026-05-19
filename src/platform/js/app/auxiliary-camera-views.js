@@ -74,6 +74,10 @@ import {
 import { renderWithLunarCraterView } from "./lunar-crater-view-renderer.js";
 import { renderWithSurfacePointView } from "./surface-point-view-renderer.js";
 import { getSceneVisibleCraftIds } from "./scene-craft-helpers.js";
+import {
+    getDockviewSpikeLayoutHost,
+    resolveDockedWorkflowPanelPosition,
+} from "./dockview-workflow-panels.js";
 
 const PANEL_SPECS = Object.freeze([
     {
@@ -105,8 +109,8 @@ const PANEL_SPECS = Object.freeze([
     },
     {
         id: "earth-origin-orbit-xy",
-        title: "Earth Orbit XY",
-        chipLabel: "Earth Orbit XY",
+        title: "Orbit",
+        chipLabel: "Orbit",
         anchorKey: "earth",
         targetKey: "craft",
         infoMode: "orbit-xy",
@@ -1974,6 +1978,9 @@ class AuxiliaryCameraViewsManager {
             panelState.minimized = false;
             panelState.deleted = false;
         }
+        if (nextClosed && this.isAuxiliaryPanelDocked(panelState)) {
+            this.closeDockedAuxiliaryPanel(panelState);
+        }
         panelState.panel.hidden = nextClosed || panelState.minimized === true;
         if (panelState.chipButton) {
             panelState.chipButton.hidden = nextClosed || panelState.minimized !== true;
@@ -2029,10 +2036,17 @@ class AuxiliaryCameraViewsManager {
             persist: true,
             requestRender: false,
         });
+        if (this.isDockviewAuxiliaryPanelEnabled()) {
+            this.ensureAuxiliaryPanelDocked(panelState);
+        }
         if (wasHidden && panelState.defaultLayoutManaged !== false) {
             this.scheduleDefaultPanelLayout();
         }
-        this.bringPanelToFront(panelState);
+        if (this.isAuxiliaryPanelDocked(panelState)) {
+            getDockviewSpikeLayoutHost()?.focusPanel?.(panelState.panelRegistryId);
+        } else {
+            this.bringPanelToFront(panelState);
+        }
         this.requestRender?.();
         this.syncPanelRegistry(panelState);
     }
@@ -2200,8 +2214,57 @@ class AuxiliaryCameraViewsManager {
         return !event.target.closest("input, button, select, option, label, output");
     }
 
+    isDockviewAuxiliaryPanelEnabled() {
+        return !!getDockviewSpikeLayoutHost();
+    }
+
+    isAuxiliaryPanelDocked(panelState) {
+        return !!panelState?.panel?.classList?.contains?.("aux-camera-view--dockview");
+    }
+
+    ensureAuxiliaryPanelDocked(panelState) {
+        if (!panelState?.panel || !panelState.panelRegistryId) {
+            return false;
+        }
+        const layoutHost = getDockviewSpikeLayoutHost();
+        if (!layoutHost) {
+            return false;
+        }
+        if (layoutHost.api?.getPanel?.(panelState.panelRegistryId)) {
+            return true;
+        }
+        layoutHost.addPanel({
+            id: panelState.panelRegistryId,
+            component: "mounted-element",
+            title: panelState.title,
+            position: resolveDockedWorkflowPanelPosition(layoutHost, panelState.panelRegistryId),
+            params: {
+                mountElementId: panelState.panel.id,
+                mountClassName: "aux-camera-view--dockview",
+                fallbackParentId: "aux-camera-views",
+            },
+            initialWidth: panelState.mode === "composer" ? 320 : 200,
+            initialHeight: panelState.mode === "composer" ? 360 : 260,
+            minimumWidth: panelState.mode === "composer" ? 280 : 170,
+            minimumHeight: panelState.mode === "composer" ? 260 : 180,
+        });
+        layoutHost.focusPanel(panelState.panelRegistryId);
+        return true;
+    }
+
+    closeDockedAuxiliaryPanel(panelState) {
+        const layoutHost = getDockviewSpikeLayoutHost();
+        if (!layoutHost || !panelState?.panelRegistryId) {
+            return false;
+        }
+        return layoutHost.closePanel(panelState.panelRegistryId);
+    }
+
     bindPanelDragging(panelState, header) {
         const onPointerDown = (event) => {
+            if (this.isAuxiliaryPanelDocked(panelState)) {
+                return;
+            }
             if (panelState?.maximized === true) {
                 return;
             }
@@ -2356,6 +2419,9 @@ class AuxiliaryCameraViewsManager {
         };
 
         const startResize = (event, captureTarget, corner) => {
+            if (this.isAuxiliaryPanelDocked(panelState)) {
+                return;
+            }
             if (panelState.maximized === true) {
                 panelState.maximized = false;
                 panelState.restoreFrame = null;
@@ -3495,6 +3561,7 @@ class AuxiliaryCameraViewsManager {
             : new this.THREE.PerspectiveCamera(spec.defaultFov, 1, 0.0001, 100000);
         camera.up.set(0, 0, 1);
         const panelRegistryId = `aux:${spec.id}`;
+        panel.id = `aux-camera-panel-${spec.id}`;
         panel.dataset.panelId = panelRegistryId;
         const persistedLayout = readMissionPanelState(panelRegistryId);
         const persistedState = normalizeMissionPanelState(persistedLayout?.state, "");
@@ -5423,6 +5490,9 @@ class AuxiliaryCameraViewsManager {
             panelState.minimized !== true &&
             panelState.closed !== true &&
             panelState.deleted !== true;
+        if (shouldShowPanel && this.isDockviewAuxiliaryPanelEnabled()) {
+            this.ensureAuxiliaryPanelDocked(panelState);
+        }
         panelState.panel.hidden = !shouldShowPanel;
         if (panelState.chipButton) {
             panelState.chipButton.hidden = panelState.minimized !== true ||

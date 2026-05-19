@@ -38,7 +38,6 @@ import {
 } from "./media-browser-panel.js";
 import {
     createBackgroundMediaPanelActions,
-    resolveBackgroundCandidates,
 } from "./background-media-panel.js";
 import { isMissionPanelEnabled } from "./panel-defaults.js";
 
@@ -3283,10 +3282,6 @@ function createMediaTimelineCoordination({
 
         const manifest = runtimeMediaState.getManifest();
         const available = globalConfig != null;
-        const backgroundItems = Array.isArray(manifest?.mediaItems)
-            ? manifest.mediaItems
-            : [];
-        const backgroundAvailable = resolveBackgroundCandidates(backgroundItems).length > 0;
         applyPanelMissionContext({
             configData: globalConfig,
             available,
@@ -3297,7 +3292,7 @@ function createMediaTimelineCoordination({
         });
         applyBackgroundMissionContext({
             configData: globalConfig,
-            available: available && backgroundAvailable,
+            available,
         });
 
         if (loadState === "loading" || (loadState === "idle" && !manifest)) {
@@ -3347,6 +3342,9 @@ function createMediaTimelineCoordination({
         if (!frameScrubPreviewActive) {
             syncActivePlayableMediaToMissionTime(activePlaybackItem, timeMs);
         }
+        const backgroundItems = Array.isArray(manifest?.mediaItems)
+            ? manifest.mediaItems
+            : [];
         backgroundPanelActions.render({
             items: backgroundItems,
             timeMs,

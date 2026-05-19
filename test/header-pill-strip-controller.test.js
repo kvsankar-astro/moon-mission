@@ -37,6 +37,8 @@ function createElement(id, options = {}) {
     const listeners = new Map();
     return {
         id,
+        parentElement: options.parentElement || null,
+        dataset: {},
         textContent: options.textContent || "",
         title: options.title || "",
         scrollLeft: options.scrollLeft || 0,
@@ -70,15 +72,26 @@ function createHarness(options = {}) {
         ["header-pill-strip-secondary", secondary],
         ["header-pill-strip-tertiary", tertiary],
     ]);
+    const dockviewPane = createElement("mission-main-view-pane", { classes: ["mission-main-view-pane"] });
+    if (options.dockview === true) {
+        strip.parentElement = dockviewPane;
+    }
     const documentRef = {
         body: {
-            classList: createClassList(options.mobile ? ["mobile-shell-enabled"] : []),
+            classList: createClassList([
+                ...(options.mobile ? ["mobile-shell-enabled"] : []),
+                ...(options.dockview ? ["dockview-panels-enabled"] : []),
+            ]),
         },
         getElementById(id) {
             return elements.get(id) || null;
         },
     };
     const windowRef = {
+        innerWidth: options.innerWidth ?? 500,
+        location: {
+            search: options.search || "",
+        },
         matchMedia() {
             return { matches: options.mobile === true };
         },
@@ -141,7 +154,8 @@ describe("createHeaderPillStripController", function () {
         harness.controller.bind();
 
         expect(harness.strip.classList.contains("header-pill-strip--collapsed")).toBe(false);
-        expect(harness.toggle.textContent).toBe("‹");
+        expect(harness.toggle.textContent).toBe("");
+        expect(harness.toggle.dataset.state).toBe("expanded");
         expect(harness.toggle["aria-expanded"]).toBe("true");
         expect(harness.primary.scrollLeft).toBe(0);
         expect(harness.secondary.scrollLeft).toBe(0);
@@ -155,7 +169,8 @@ describe("createHeaderPillStripController", function () {
         harness.toggle.dispatchEvent({ type: "click" });
 
         expect(harness.strip.classList.contains("header-pill-strip--collapsed")).toBe(true);
-        expect(harness.toggle.textContent).toBe("›");
+        expect(harness.toggle.textContent).toBe("");
+        expect(harness.toggle.dataset.state).toBe("collapsed");
         expect(harness.toggle["aria-expanded"]).toBe("false");
     });
 
@@ -219,6 +234,20 @@ describe("createHeaderPillStripController", function () {
 
         harness.strip.dispatchEvent({ type: "pointerleave" });
         expect(harness.hasPendingTimeout()).toBe(false);
+        expect(harness.strip.classList.contains("header-pill-strip--groups-expanded")).toBe(true);
+    });
+
+    it("starts collapsed in a docked main view but keeps the toggle available", function () {
+        const harness = createHarness({ dockview: true, innerWidth: 1000 });
+
+        harness.controller.bind();
+
+        expect(harness.strip.classList.contains("header-pill-strip--collapsed")).toBe(true);
+        expect(harness.toggle.hidden).toBe(false);
+
+        harness.toggle.dispatchEvent({ type: "click" });
+
+        expect(harness.strip.classList.contains("header-pill-strip--collapsed")).toBe(false);
         expect(harness.strip.classList.contains("header-pill-strip--groups-expanded")).toBe(true);
     });
 });

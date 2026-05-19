@@ -627,6 +627,554 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     border-color: rgba(238, 139, 139, 0.55);
 }
 
+.experimental-dockview-host {
+    position: fixed;
+    top: var(--dockview-top-strip-height, 46px);
+    right: 0;
+    bottom: calc(var(--timeline-dock-height) + var(--timeline-dock-offset) + 12px);
+    left: 0;
+    z-index: 1;
+    display: grid;
+    grid-template-rows: minmax(0, 1fr);
+    width: auto;
+    min-height: 260px;
+    overflow: hidden;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    pointer-events: auto;
+}
+
+.experimental-dockview-host__toolbar {
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-width: 0;
+    padding: 7px 9px;
+    border-bottom: 1px solid rgba(123, 170, 236, 0.22);
+    background: rgba(10, 18, 32, 0.92);
+    cursor: default;
+    touch-action: auto;
+}
+
+.experimental-dockview-host__toolbar:active {
+    cursor: default;
+}
+
+.experimental-dockview-host__label {
+    min-width: 0;
+    overflow: hidden;
+    color: rgba(230, 240, 255, 0.92);
+    font-family: var(--ui-font-condensed);
+    font-size: 12px;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.experimental-dockview-host__button {
+    min-height: 24px;
+    border: 1px solid rgba(132, 183, 255, 0.36);
+    border-radius: 6px;
+    background: rgba(23, 36, 60, 0.86);
+    color: rgba(229, 240, 255, 0.92);
+    font-family: var(--ui-font-condensed);
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+    padding: 0 9px;
+    cursor: pointer;
+}
+
+.experimental-dockview-host__button:hover,
+.experimental-dockview-host__button:focus-visible {
+    border-color: rgba(151, 200, 255, 0.68);
+    background: rgba(52, 84, 136, 0.72);
+    outline: none;
+}
+
+.experimental-dockview-host__dock {
+    min-width: 0;
+    min-height: 0;
+    --dv-color-abyss-dark: rgba(5, 8, 15, 0.9);
+    --dv-color-abyss: rgba(12, 17, 28, 0.96);
+    --dv-color-abyss-light: rgba(18, 25, 40, 0.96);
+    --dv-color-abyss-lighter: rgba(38, 50, 74, 0.98);
+    --dv-color-abyss-accent: rgb(91, 166, 255);
+    --dv-color-abyss-primary-text: rgba(235, 243, 255, 0.96);
+    --dv-color-abyss-secondary-text: rgba(147, 166, 194, 0.86);
+    --dv-tabs-and-actions-container-height: 32px;
+    --dv-tab-font-size: 12px;
+    --dv-tab-margin: 0.35rem 0.18rem;
+    --dv-tab-border-radius: 7px;
+    --dv-border-radius: 14px;
+    --dv-spacing-padding: 8px;
+    --dv-sash-border-radius: 4px;
+    --dv-sash-color: rgba(75, 111, 166, 0.18);
+    --dv-active-sash-color: rgba(91, 166, 255, 0.68);
+    --dv-tab-close-icon-size: 8px;
+    --dv-active-sash-transition-delay: 0s;
+    color: rgba(229, 239, 255, 0.95);
+    font-family: var(--ui-font-sans);
+}
+
+.experimental-dockview-host__dock .dv-groupview {
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.32);
+}
+
+.experimental-dockview-host__dock .dv-tabs-and-actions-container {
+    border-bottom: 1px solid rgba(111, 143, 189, 0.1);
+}
+
+.experimental-dockview-host__dock .dv-right-actions-container {
+    display: flex;
+    align-items: center;
+    min-width: max-content;
+}
+
+.experimental-dockview-host__dock .dv-tab {
+    font-family: var(--ui-font-condensed);
+    font-weight: 650;
+    letter-spacing: 0;
+}
+
+.experimental-dockview-host__dock .dv-tab.dv-active-tab .dv-default-tab {
+    color: rgba(241, 248, 255, 0.98);
+}
+
+.experimental-dockview-host__dock .dv-tab.dv-active-tab .dv-default-tab::before {
+    content: "";
+    width: 5px;
+    height: 5px;
+    margin: 0 7px 0 1px;
+    border-radius: 999px;
+    background: rgba(109, 190, 255, 0.94);
+    box-shadow: 0 0 10px rgba(109, 190, 255, 0.48);
+}
+
+.experimental-dockview-host__dock .dv-tab.dv-inactive-tab .dv-default-tab {
+    color: rgba(151, 169, 196, 0.9);
+}
+
+.experimental-dockview-host__dock .dv-tabs-and-actions-container svg,
+.experimental-dockview-host__dock .dv-tabs-overflow-dropdown-default svg,
+.experimental-dockview-host__dock .dv-tab svg,
+.experimental-dockview-host__dock .dv-svg {
+    position: static !important;
+    inset: auto !important;
+    display: block;
+    width: var(--dv-tab-close-icon-size, 12px) !important;
+    height: var(--dv-tab-close-icon-size, 12px) !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    pointer-events: none;
+    overflow: visible;
+}
+
+.experimental-dockview-host__dock .dv-default-tab-action {
+    width: 20px;
+    height: 20px;
+    color: rgba(157, 177, 205, 0.9);
+}
+
+.experimental-dockview-host__header-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    height: 100%;
+    padding: 0 7px 0 3px;
+}
+
+.experimental-dockview-host__header-action {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    border: 1px solid rgba(109, 152, 209, 0.24);
+    border-radius: 5px;
+    background: rgba(11, 19, 32, 0.42);
+    color: rgba(197, 215, 242, 0.9);
+    cursor: pointer;
+}
+
+.experimental-dockview-host__header-action:hover,
+.experimental-dockview-host__header-action:focus-visible {
+    border-color: rgba(116, 181, 255, 0.58);
+    background: rgba(36, 62, 99, 0.66);
+    color: rgba(240, 247, 255, 0.98);
+    outline: none;
+}
+
+.experimental-dockview-host__header-action-icon,
+.experimental-dockview-host__header-action-icon::before,
+.experimental-dockview-host__header-action-icon::after {
+    box-sizing: border-box;
+}
+
+.experimental-dockview-host__header-action-icon {
+    position: relative;
+    display: block;
+    width: 12px;
+    height: 12px;
+}
+
+.experimental-dockview-host__header-action--maximize .experimental-dockview-host__header-action-icon {
+    border: 1px solid currentColor;
+    border-radius: 2px;
+}
+
+.experimental-dockview-host__header-action--maximize .experimental-dockview-host__header-action-icon::before,
+.experimental-dockview-host__header-action--maximize .experimental-dockview-host__header-action-icon::after {
+    content: "";
+    position: absolute;
+    background: currentColor;
+}
+
+.experimental-dockview-host__header-action--maximize .experimental-dockview-host__header-action-icon::before {
+    top: -1px;
+    right: -1px;
+    width: 5px;
+    height: 1px;
+}
+
+.experimental-dockview-host__header-action--maximize .experimental-dockview-host__header-action-icon::after {
+    top: -1px;
+    right: -1px;
+    width: 1px;
+    height: 5px;
+}
+
+.experimental-dockview-host__header-action--float .experimental-dockview-host__header-action-icon {
+    border: 1px solid currentColor;
+    border-radius: 2px;
+    transform: translate(-1px, 1px);
+}
+
+.experimental-dockview-host__header-action--float .experimental-dockview-host__header-action-icon::before {
+    content: "";
+    position: absolute;
+    right: -4px;
+    top: -4px;
+    width: 8px;
+    height: 8px;
+    border: 1px solid currentColor;
+    border-radius: 2px;
+    background: rgba(11, 19, 32, 0.86);
+}
+
+.experimental-dockview-host__header-action--popout .experimental-dockview-host__header-action-icon {
+    border: 1px solid currentColor;
+    border-radius: 2px;
+}
+
+.experimental-dockview-host__header-action--popout .experimental-dockview-host__header-action-icon::before,
+.experimental-dockview-host__header-action--popout .experimental-dockview-host__header-action-icon::after {
+    content: "";
+    position: absolute;
+    background: currentColor;
+}
+
+.experimental-dockview-host__header-action--popout .experimental-dockview-host__header-action-icon::before {
+    top: 2px;
+    right: -1px;
+    width: 7px;
+    height: 1px;
+    transform: rotate(-45deg);
+    transform-origin: right center;
+}
+
+.experimental-dockview-host__header-action--popout .experimental-dockview-host__header-action-icon::after {
+    top: -1px;
+    right: -1px;
+    width: 5px;
+    height: 5px;
+    border-top: 1px solid currentColor;
+    border-right: 1px solid currentColor;
+    background: transparent;
+}
+
+.experimental-dockview-host__header-action--close .experimental-dockview-host__header-action-icon::before,
+.experimental-dockview-host__header-action--close .experimental-dockview-host__header-action-icon::after {
+    content: "";
+    position: absolute;
+    top: 5px;
+    left: 2px;
+    width: 8px;
+    height: 1px;
+    border-radius: 999px;
+    background: currentColor;
+}
+
+.experimental-dockview-host__header-action--close .experimental-dockview-host__header-action-icon::before {
+    transform: rotate(45deg);
+}
+
+.experimental-dockview-host__header-action--close .experimental-dockview-host__header-action-icon::after {
+    transform: rotate(-45deg);
+}
+
+.experimental-dockview-host__dock .dv-sash {
+    opacity: 0.78;
+}
+
+.experimental-dockview-host__dock .dv-sash:not(.disabled):hover,
+.experimental-dockview-host__dock .dv-sash:not(.disabled):active {
+    opacity: 1;
+}
+
+.experimental-dockview-host__dock .dv-content-container {
+    overflow: hidden;
+}
+
+.experimental-dockview-host__resize-grip {
+    display: none;
+}
+
+.experimental-dockview-host__resize-grip::before {
+    content: "";
+    position: absolute;
+    right: 7px;
+    bottom: 7px;
+    width: 11px;
+    height: 11px;
+    border-right: 1px solid rgba(190, 218, 255, 0.78);
+    border-bottom: 1px solid rgba(190, 218, 255, 0.78);
+    box-shadow: 4px 4px 0 -3px rgba(190, 218, 255, 0.52);
+}
+
+.experimental-dockview-panel {
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    overflow: auto;
+    padding: 14px;
+    background:
+        linear-gradient(180deg, rgba(19, 32, 54, 0.9), rgba(7, 13, 24, 0.96));
+    color: rgba(223, 235, 252, 0.9);
+    font-family: var(--ui-font-sans);
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.experimental-dockview-panel--mounted {
+    overflow: hidden;
+    padding: 0;
+    background: transparent;
+}
+
+.panel-layout-host__panel {
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+}
+
+.mission-main-view-pane {
+    position: relative;
+    overflow: hidden;
+    background: #020710;
+}
+
+.mission-main-view-surface {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    min-width: 0;
+    min-height: 0;
+}
+
+.mission-main-view-surface #svg-top-baseline {
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.mission-main-view-surface #svg-wrapper,
+.mission-main-view-surface #canvas-wrapper,
+.mission-main-view-surface #mobile-moon-farside-overlay {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+}
+
+.mission-main-view-surface #svg-wrapper > svg {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+}
+
+.mission-main-view-surface #canvas-wrapper canvas {
+    display: block;
+}
+
+.experimental-dockview-host .media-browser-panel {
+    position: relative !important;
+    left: auto !important;
+    top: auto !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 0;
+    min-height: 0;
+    max-width: none;
+    max-height: none;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.experimental-dockview-host .mission-panel-shell__header,
+.experimental-dockview-host .media-browser-panel__header {
+    display: none !important;
+    min-height: 0;
+    height: 0;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    cursor: default;
+}
+
+.experimental-dockview-host .mission-panel-shell__header-controls,
+.experimental-dockview-host .media-browser-panel__header-controls,
+.experimental-dockview-host .background-media-panel__header-controls,
+.experimental-dockview-host .ground-track-panel__header-controls,
+.experimental-dockview-host .aux-camera-view__header-controls {
+    display: none !important;
+}
+
+.experimental-dockview-host .media-browser-panel__resize-grip {
+    display: none;
+}
+
+.experimental-dockview-host .ground-track-panel {
+    position: relative !important;
+    left: auto !important;
+    top: auto !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 0;
+    min-height: 0;
+    max-width: none;
+    max-height: none;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    resize: none;
+}
+
+.experimental-dockview-host .ground-track-panel__header {
+    display: none !important;
+    min-height: 0;
+    height: 0;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    cursor: default;
+}
+
+.experimental-dockview-host .background-media-panel {
+    position: relative !important;
+    left: auto !important;
+    top: auto !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 0;
+    min-height: 0;
+    max-width: none;
+    max-height: none;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.experimental-dockview-host .background-media-panel__header {
+    display: none !important;
+    min-height: 0;
+    height: 0;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    cursor: default;
+}
+
+.experimental-dockview-host .background-media-panel__resize-grip {
+    display: none;
+}
+
+.experimental-dockview-host .background-media-panel__transcript--dockview {
+    display: grid;
+    height: 100%;
+    min-height: 0;
+    border-top: 0;
+    background: rgba(4, 8, 16, 0.82);
+}
+
+.experimental-dockview-host .aux-camera-view {
+    position: relative !important;
+    left: auto !important;
+    top: auto !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 0;
+    min-height: 0;
+    max-width: none;
+    max-height: none;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.experimental-dockview-host .aux-camera-view__header {
+    display: none !important;
+    min-height: 0;
+    height: 0;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    cursor: default;
+}
+
+.experimental-dockview-host .aux-camera-view__resize-grip {
+    display: none;
+}
+
+.experimental-dockview-panel__title {
+    margin: 0 0 8px;
+    color: rgba(244, 249, 255, 0.96);
+    font-family: var(--ui-font-condensed);
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.experimental-dockview-panel__copy {
+    margin: 0 0 12px;
+    color: rgba(193, 213, 241, 0.86);
+}
+
+.experimental-dockview-panel__list {
+    display: grid;
+    gap: 7px;
+    margin: 0;
+    padding-left: 18px;
+    color: rgba(219, 232, 250, 0.9);
+}
+
+@media (max-width: 600px) {
+    .experimental-dockview-host {
+        display: none;
+    }
+}
+
 .media-browser-panel-wrapper {
     position: fixed;
     inset: 0;

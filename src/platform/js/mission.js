@@ -913,6 +913,9 @@ missionRuntimeWireup = nextMissionRuntimeWireup;
 toggleMode = runtimeToggleMode;
 setDimensionTop = runtimeSetDimensionTop;
 setView = runtimeSetView;
+window.__moonMissionResizeMainView = () => {
+    bridgeActions.onWindowResize();
+};
 export { main };
 
 publishMissionRuntimeGlobals({
@@ -930,6 +933,9 @@ function disposeMissionRuntimeResources() {
         return;
     }
     runtimeCleanupComplete = true;
+    if (window.__moonMissionResizeMainView) {
+        delete window.__moonMissionResizeMainView;
+    }
     missionRuntimeWireup?.sceneUiUpdateActions?.dispose?.();
     Object.values(animationScenes || {}).forEach((scene) => {
         scene?.dispose?.();
@@ -956,6 +962,29 @@ function registerMissionRuntimeCleanup() {
 
 registerMissionRuntimeCleanup();
 
+function shouldLoadDockviewWorkspace() {
+    const legacyPanels = String(startupParams.get("legacyPanels") || "").trim().toLowerCase();
+    if (legacyPanels === "1" || legacyPanels === "true" || legacyPanels === "yes") {
+        return false;
+    }
+    const dockPanels = String(startupParams.get("dockPanels") || "").trim().toLowerCase();
+    if (dockPanels === "1" || dockPanels === "true" || dockPanels === "yes") {
+        return true;
+    }
+    if (dockPanels === "0" || dockPanels === "false" || dockPanels === "no") {
+        return false;
+    }
+    return window.innerWidth > 600;
+}
+
+if (shouldLoadDockviewWorkspace()) {
+    import("./app/experimental-dockview-host.js")
+        .then(({ initializeExperimentalDockviewHost }) => {
+            initializeExperimentalDockviewHost();
+        })
+        .catch((error) => {
+            console.warn("Dockview panel workspace failed to initialize", error);
+        });
+}
+
 // end of file
-
-

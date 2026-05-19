@@ -277,7 +277,7 @@ describe("createSettingsPanelController", () => {
         expect(harness.viewLegend.textContent).toBe("Craft / Display");
         expect(harness.otherSection.classList.contains("settings-panel__filtered-hidden")).toBe(true);
         expect(harness.cameraSection.classList.contains("settings-panel__filtered-hidden")).toBe(false);
-        expect(harness.panelManagerSection.classList.contains("settings-panel__filtered-hidden")).toBe(false);
+        expect(harness.panelManagerSection.classList.contains("settings-panel__filtered-hidden")).toBe(true);
         expect(harness.genericViewOption.classList.contains("settings-panel__filtered-hidden")).toBe(true);
         expect(harness.additionalCraftsOption.classList.contains("settings-panel__filtered-hidden")).toBe(false);
         expect(harness.auxPanelsOption.classList.contains("settings-panel__filtered-hidden")).toBe(true);
@@ -285,7 +285,7 @@ describe("createSettingsPanelController", () => {
         expect(harness.cameraSection.classList.contains("settings-section--advanced-collapsible")).toBe(true);
         expect(harness.cameraSection.classList.contains("settings-section--collapsed")).toBe(false);
         expect(harness.viewSection.classList.contains("settings-section--collapsed")).toBe(true);
-        expect(harness.panelManagerSection.classList.contains("settings-section--collapsed")).toBe(true);
+        expect(harness.panelManagerSection.classList.contains("settings-section--collapsed")).toBe(false);
 
         harness.viewLegend.dispatch("click");
         expect(harness.viewSection.classList.contains("settings-section--collapsed")).toBe(false);

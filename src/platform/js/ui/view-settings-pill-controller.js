@@ -189,25 +189,8 @@ export function createViewSettingsPillController(deps = {}) {
             open = false;
         }
         panel.hidden = open !== true;
-        if (open === true && pill?.getBoundingClientRect && panel?.style) {
-            const strip = getElement("header-pill-strip") || panel.offsetParent || null;
-            const pillRect = pill.getBoundingClientRect();
-            const stripRect = strip?.getBoundingClientRect?.() || {
-                left: 0,
-                top: 0,
-                width: windowRef?.innerWidth || 0,
-            };
-            const panelWidth = panel.offsetWidth || 236;
-            const maxLeft = Math.max(8, (stripRect.width || windowRef?.innerWidth || panelWidth) - panelWidth - 8);
-            const nextLeft = Math.min(
-                Math.max(8, pillRect.left - stripRect.left),
-                maxLeft,
-            );
-            panel.style.left = `${nextLeft}px`;
-            panel.style.right = "auto";
-            panel.style.top = isMobileControlLayout()
-                ? `${(stripRect.height || 0) + 8}px`
-                : `${pillRect.bottom - stripRect.top + 4}px`;
+        if (open === true) {
+            positionPanelFromPill(panel, pill);
         }
         if (pill) {
             pill.classList?.toggle?.("is-open", open === true);
@@ -316,6 +299,21 @@ export function createViewSettingsPillController(deps = {}) {
 
     function positionPanelFromPill(panel, pill) {
         if (!panel || !pill?.getBoundingClientRect || !panel?.style) return;
+        if (documentRef?.body?.classList?.contains?.("dockview-panels-enabled")) {
+            const pillRect = pill.getBoundingClientRect();
+            const panelWidth = panel.offsetWidth || (panel.classList?.contains?.("surface-points-controls-panel") ? 300 : 360);
+            const viewportWidth = windowRef?.innerWidth || panelWidth;
+            const preferredLeft = pillRect.left + (pillRect.width / 2) - (panelWidth / 2);
+            const nextLeft = Math.min(
+                Math.max(8, preferredLeft),
+                Math.max(8, viewportWidth - panelWidth - 8),
+            );
+            panel.style.position = "fixed";
+            panel.style.left = `${Math.round(nextLeft)}px`;
+            panel.style.right = "auto";
+            panel.style.top = `${Math.round(pillRect.bottom + 6)}px`;
+            return;
+        }
         const strip = getElement("header-pill-strip") || panel.offsetParent || null;
         const pillRect = pill.getBoundingClientRect();
         const stripRect = strip?.getBoundingClientRect?.() || {
@@ -373,22 +371,23 @@ export function createViewSettingsPillController(deps = {}) {
         }
         panel.hidden = open !== true;
         if (open === true) {
-            if (pill?.getBoundingClientRect && panel?.style) {
-                const pillRect = pill.getBoundingClientRect();
-                const panelWidth = panel.offsetWidth || 300;
-                const viewportWidth = windowRef?.innerWidth || panelWidth;
-                const nextLeft = Math.min(
-                    Math.max(8, pillRect.left),
-                    Math.max(8, viewportWidth - panelWidth - 8),
-                );
-                panel.style.left = `${nextLeft}px`;
-                panel.style.right = "auto";
-                panel.style.top = `${pillRect.bottom + 4}px`;
-            }
+            positionPanelFromPill(panel, pill);
         }
         if (pill) {
             pill.classList?.toggle?.("is-open", open === true);
             pill.setAttribute?.("aria-expanded", open === true ? "true" : "false");
+        }
+    }
+
+    function closeAnnotationPanels(exceptPanelId = "") {
+        if (exceptPanelId !== "lunar-crater-controls-panel") {
+            setLunarCraterPanelOpen(false);
+        }
+        if (exceptPanelId !== "guides-controls-panel") {
+            setGuidesPanelOpen(false);
+        }
+        if (exceptPanelId !== "surface-points-controls-panel") {
+            setSurfacePointPanelOpen(false);
         }
     }
 
@@ -501,7 +500,9 @@ export function createViewSettingsPillController(deps = {}) {
                     return;
                 }
                 event?.stopPropagation?.();
-                setLunarCraterPanelOpen(true);
+                const panelOpen = getCraterPanelElements().panel?.hidden === false;
+                closeAnnotationPanels(panelOpen ? "" : "lunar-crater-controls-panel");
+                setLunarCraterPanelOpen(!panelOpen);
                 syncLunarCraterPanelState();
             });
         }
@@ -509,6 +510,9 @@ export function createViewSettingsPillController(deps = {}) {
             elements: getCraterPanelElements(),
             commitPatch: commitLunarCraterViewPatch,
             sync: syncLunarCraterPanelState,
+        });
+        getCraterPanelElements().closeButton?.addEventListener?.("click", function () {
+            setLunarCraterPanelOpen(false);
         });
     }
 
@@ -786,7 +790,9 @@ export function createViewSettingsPillController(deps = {}) {
                     return;
                 }
                 event?.stopPropagation?.();
-                setGuidesPanelOpen(true);
+                const panelOpen = getGuidesPanelElements().panel?.hidden === false;
+                closeAnnotationPanels(panelOpen ? "" : "guides-controls-panel");
+                setGuidesPanelOpen(!panelOpen);
                 syncGuidesPanelState();
             });
         }
@@ -813,7 +819,9 @@ export function createViewSettingsPillController(deps = {}) {
                     return;
                 }
                 event?.stopPropagation?.();
-                setSurfacePointPanelOpen(true);
+                const panelOpen = getSurfacePointPanelElements().panel?.hidden === false;
+                closeAnnotationPanels(panelOpen ? "" : "surface-points-controls-panel");
+                setSurfacePointPanelOpen(!panelOpen);
                 syncSurfacePointPanelState();
             });
         }
@@ -895,15 +903,17 @@ export function createViewSettingsPillController(deps = {}) {
             if (!pill) return;
             pill.addEventListener("click", function () {
                 const currentProfile = getActiveMoonRenderProfile();
-                if (currentProfile === profile) {
+                const offProfile = pill.dataset?.toggleProfileOff;
+                const nextProfile = currentProfile === profile && offProfile ? offProfile : profile;
+                if (currentProfile === nextProfile) {
                     syncMoonRenderProfilePillState();
                     return;
                 }
                 pill.disabled = true;
                 Promise.resolve(
                     typeof setMoonRenderProfile === "function"
-                        ? setMoonRenderProfile(profile)
-                        : profile,
+                        ? setMoonRenderProfile(nextProfile)
+                        : nextProfile,
                 ).catch((error) => {
                     console.error("Failed to switch Moon render profile:", error);
                 }).finally(() => {

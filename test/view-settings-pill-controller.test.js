@@ -44,6 +44,7 @@ function createElement(id, options = {}) {
         value: options.value || "",
         textContent: options.textContent || "",
         title: options.title || "",
+        dataset: {},
         style: {
             display: options.display || "",
             visibility: options.visibility || "",
@@ -462,6 +463,19 @@ describe("createViewSettingsPillController", function () {
         expect(harness.qualityPill.disabled).toBe(false);
         expect(harness.qualityPill.classList.contains("is-active")).toBe(true);
         expect(harness.fastPill.classList.contains("is-active")).toBe(false);
+    });
+
+    it("allows a moon profile pill to toggle back to its off profile", async function () {
+        const harness = createHarness({ moonProfile: "quality" });
+        harness.qualityPill.dataset.toggleProfileOff = "fast";
+
+        harness.controller.bind();
+        harness.qualityPill.dispatchEvent({ type: "click" });
+        await Promise.resolve();
+        await Promise.resolve();
+
+        expect(harness.qualityPill.classList.contains("is-active")).toBe(false);
+        expect(harness.fastPill.classList.contains("is-active")).toBe(true);
     });
 
     it("toggles the photo mode pill through the async setter", async function () {

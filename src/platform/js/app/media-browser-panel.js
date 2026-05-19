@@ -11,6 +11,10 @@ import {
     getMissionPanelDefaultState,
     isMissionPanelEnabled,
 } from "./panel-defaults.js";
+import {
+    getDockviewSpikeLayoutHost,
+    resolveDockedWorkflowPanelPosition,
+} from "./dockview-workflow-panels.js";
 import { bringPanelElementToFront } from "./panel-z-order.js";
 
 const MEDIA_BROWSER_PANEL_ID = "workflow:media-browser";
@@ -393,7 +397,48 @@ function createMediaBrowserPanelActions({
         return getNode("media-browser-panel-wrapper");
     }
 
+    function isDockviewMediaPanelEnabled() {
+        return !!getDockviewSpikeLayoutHost();
+    }
+
+    function isMediaPanelDocked(panel = getNode("media-browser-panel")) {
+        return !!panel?.classList?.contains?.("media-browser-panel--dockview");
+    }
+
+    function ensureMediaPanelDocked(panel = getNode("media-browser-panel")) {
+        if (!isElementLike(panel)) return false;
+        const layoutHost = getDockviewSpikeLayoutHost();
+        if (!layoutHost) return false;
+        if (layoutHost.focusPanel(MEDIA_BROWSER_PANEL_ID)) {
+            return true;
+        }
+        const position = resolveDockedWorkflowPanelPosition(layoutHost, MEDIA_BROWSER_PANEL_ID);
+        layoutHost.addPanel({
+            id: MEDIA_BROWSER_PANEL_ID,
+            component: "mounted-element",
+            title: panelTitle || "Mission Media",
+            position,
+            params: {
+                mountElementId: "media-browser-panel",
+                mountClassName: "media-browser-panel--dockview",
+                fallbackParentId: "media-browser-panel-wrapper",
+            },
+            initialWidth: 300,
+            minimumWidth: 260,
+            minimumHeight: PANEL_MIN_HEIGHT_PX,
+        });
+        layoutHost.focusPanel(MEDIA_BROWSER_PANEL_ID);
+        return true;
+    }
+
+    function closeDockedMediaPanel() {
+        const layoutHost = getDockviewSpikeLayoutHost();
+        if (!layoutHost) return false;
+        return layoutHost.closePanel(MEDIA_BROWSER_PANEL_ID);
+    }
+
     function bringPanelToFront() {
+        if (isMediaPanelDocked()) return;
         bringPanelElementToFront(getWrapper());
     }
 
@@ -588,6 +633,7 @@ function createMediaBrowserPanelActions({
 
     function applyPanelPosition(panel, x, y) {
         if (!panel) return;
+        if (isMediaPanelDocked(panel)) return;
         const width = Math.max(panel.offsetWidth || PANEL_DEFAULT_WIDTH_PX, PANEL_MIN_WIDTH_PX);
         const height = Math.max(panel.offsetHeight || getPanelDefaultHeightPx(), PANEL_MIN_HEIGHT_PX);
         const clamped = clampPanelRect({ x, y, width, height });
@@ -628,6 +674,11 @@ function createMediaBrowserPanelActions({
 
     function applyPanelFrame(panel, frame, { managed = defaultLayoutManaged, persist = true } = {}) {
         if (!isElementLike(panel) || !frame) return;
+        if (isMediaPanelDocked(panel)) {
+            applyThumbnailStripHeight(thumbnailStripHeight);
+            applyImageViewState(imageViewState, { animate: false });
+            return;
+        }
         const clamped = clampPanelFrame(frame);
         panel.style.width = `${clamped.width}px`;
         panel.style.height = `${clamped.height}px`;
@@ -679,6 +730,7 @@ function createMediaBrowserPanelActions({
 
     function ensurePanelPosition(panel) {
         if (!panel) return;
+        if (isMediaPanelDocked(panel)) return;
         if (!panelPosition) {
             applyPanelFrame(panel, resolveDefaultPanelFrame(), {
                 managed: defaultLayoutManaged,
@@ -701,6 +753,14 @@ function createMediaBrowserPanelActions({
 
     function persistPanelLayoutState(panel = getNode("media-browser-panel")) {
         if (!isElementLike(panel)) return;
+        if (isMediaPanelDocked(panel)) {
+            writeMissionPanelState(MEDIA_BROWSER_PANEL_ID, {
+                state: panelVisibilityState,
+                layoutPresetVersion: MEDIA_BROWSER_LAYOUT_PRESET_VERSION,
+                thumbnailStripHeight: Math.round(thumbnailStripHeight),
+            });
+            return;
+        }
         writeMissionPanelState(MEDIA_BROWSER_PANEL_ID, {
             x: Math.round(panelPosition?.x ?? panel.offsetLeft ?? 0),
             y: Math.round(panelPosition?.y ?? panel.offsetTop ?? 0),
@@ -1330,6 +1390,7 @@ function createMediaBrowserPanelActions({
         if (!panel || !header) return;
 
         const onPointerDown = (event) => {
+            if (isMediaPanelDocked(panel)) return;
             if (panelExpanded === true) return;
             if (!shouldStartDrag(event)) return;
             setDefaultLayoutManaged(false, panel);
@@ -1442,6 +1503,7 @@ function createMediaBrowserPanelActions({
         ensurePanelResizeGrips(panel);
 
         const startResize = (event, corner) => {
+            if (isMediaPanelDocked(panel)) return;
             setDefaultLayoutManaged(false, panel);
             const rect = panel.getBoundingClientRect();
             panelResizeDragState = {
@@ -1460,6 +1522,7 @@ function createMediaBrowserPanelActions({
         };
 
         panel.addEventListener("pointerdown", (event) => {
+            if (isMediaPanelDocked(panel)) return;
             if (event.button !== 0 || panelExpanded === true) return;
             if (isObjectLike(event.target) && typeof event.target.closest === "function" &&
                 event.target.closest("input, button, select, option, label, output, a")) {
@@ -1572,6 +1635,12 @@ function createMediaBrowserPanelActions({
 
     function setPanelExpanded(expanded, panel = getNode("media-browser-panel")) {
         if (!isElementLike(panel)) return;
+        if (isMediaPanelDocked(panel)) {
+            panelExpanded = false;
+            panel.classList.remove("is-maximized");
+            syncExpandButton();
+            return;
+        }
         const nextExpanded = expanded === true;
         if (nextExpanded === panelExpanded) {
             syncExpandButton();
@@ -1619,11 +1688,29 @@ function createMediaBrowserPanelActions({
         const panel = getNode("media-browser-panel");
         if (!isElementLike(panel)) return;
         const isVisible = resolvedState === "open";
+        if (isDockviewMediaPanelEnabled()) {
+            if (isVisible) {
+                ensureMediaPanelDocked(panel);
+            } else if (isMediaPanelDocked(panel)) {
+                closeDockedMediaPanel();
+            }
+        }
         panel.classList.toggle("media-browser-panel--hidden", !isVisible);
         syncPanelRegistry();
         if (!isVisible) {
             setFilterDrawerOpen(false);
             syncDrilldownFlyoutPlacement();
+            persistPanelLayoutState(panel);
+            return;
+        }
+        if (isMediaPanelDocked(panel)) {
+            panelExpanded = false;
+            panel.classList.remove("is-maximized");
+            syncFilterDrawerPlacement();
+            syncDrilldownFlyoutPlacement();
+            applyThumbnailStripHeight(thumbnailStripHeight);
+            applyImageViewState(imageViewState, { animate: false });
+            scheduleActiveThumbnailReveal();
             persistPanelLayoutState(panel);
             return;
         }
@@ -2823,8 +2910,8 @@ function createMediaBrowserPanelActions({
             : false;
         panelAvailableForMission = available === true && enabledByMission;
         ensurePanelEventsBound();
-        applyConfiguredDefaultPanelState();
         syncPanelAvailability();
+        applyConfiguredDefaultPanelState();
     }
 
     registerMissionPanel({
