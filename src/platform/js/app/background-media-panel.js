@@ -24,16 +24,18 @@ import {
 } from "../core/domain/media-transcript.js";
 
 const BACKGROUND_MEDIA_PANEL_ID = "workflow:background-media";
-const BACKGROUND_MEDIA_LAYOUT_PRESET_VERSION = "background-media-v9-shell-resize-controls";
+const BACKGROUND_MEDIA_LAYOUT_PRESET_VERSION = "background-media-v10-transcript-panel";
 const PANEL_EDGE_MARGIN_PX = 8;
 const PANEL_STACK_LEFT_PX = 32;
 const PANEL_STACK_TOP_FALLBACK_PX = 36;
 const PANEL_STACK_GAP_PX = 8;
 const DEFAULT_PANEL_WIDTH_PX = 546;
 const DEFAULT_PANEL_HEADER_HEIGHT_PX = 31;
+const DEFAULT_PANEL_CONTROLS_HEIGHT_PX = 46;
+const DEFAULT_TRANSCRIPT_PANEL_HEIGHT_PX = 176;
 const DEFAULT_MEDIA_PANEL_HEIGHT_RESERVE_PX = 260;
 const MIN_PANEL_WIDTH_PX = 300;
-const MIN_PANEL_HEIGHT_PX = 220;
+const MIN_PANEL_HEIGHT_PX = 360;
 const PANEL_RESIZE_HIT_PX = 28;
 const MAX_PLAYBACK_RATE = 4;
 const SEEK_SYNC_EPSILON_SECONDS = 0.35;
@@ -222,6 +224,24 @@ function setCaptionText(text = "") {
     const normalized = String(text || "").trim();
     setNodeText(node, normalized);
     setNodeHidden(node, !normalized);
+}
+
+function getTranscriptSegmentKey(segment) {
+    const id = segment?.id;
+    if (id != null && String(id).trim()) return String(id);
+    return `${Number(segment?.displayStartSeconds ?? segment?.startSeconds) || 0}`;
+}
+
+function getTranscriptSegmentStartSeconds(segment) {
+    const displayStartSeconds = Number(segment?.displayStartSeconds);
+    if (Number.isFinite(displayStartSeconds)) return displayStartSeconds;
+    const startSeconds = Number(segment?.startSeconds);
+    return Number.isFinite(startSeconds) ? startSeconds : Number.NaN;
+}
+
+function getTranscriptSpeakerLabel(segment) {
+    return String(segment?.displaySpeaker || segment?.speaker || "Unidentified").trim()
+        || "Unidentified";
 }
 
 function ensureCaptionCuesLoaded(sourceUrl, onLoaded) {
@@ -676,8 +696,11 @@ function getDefaultPanelRect() {
             - DEFAULT_MEDIA_PANEL_HEIGHT_RESERVE_PX,
     );
     if (getDefaultPanelHeightForWidth(width) > availableHeight) {
+        const fixedPanelHeight = DEFAULT_PANEL_HEADER_HEIGHT_PX
+            + DEFAULT_TRANSCRIPT_PANEL_HEIGHT_PX
+            + DEFAULT_PANEL_CONTROLS_HEIGHT_PX;
         const widthForAvailableHeight = Math.floor(
-            Math.max(0, availableHeight - DEFAULT_PANEL_HEADER_HEIGHT_PX) * 16 / 9,
+            Math.max(0, availableHeight - fixedPanelHeight) * 16 / 9,
         );
         width = clamp(widthForAvailableHeight, MIN_PANEL_WIDTH_PX, width);
     }
@@ -692,7 +715,13 @@ function getDefaultPanelRect() {
 
 function getDefaultPanelHeightForWidth(width) {
     const stageHeight = Math.round((Number(width) || DEFAULT_PANEL_WIDTH_PX) * 9 / 16);
-    return Math.max(MIN_PANEL_HEIGHT_PX, DEFAULT_PANEL_HEADER_HEIGHT_PX + stageHeight);
+    return Math.max(
+        MIN_PANEL_HEIGHT_PX,
+        DEFAULT_PANEL_HEADER_HEIGHT_PX
+            + stageHeight
+            + DEFAULT_TRANSCRIPT_PANEL_HEIGHT_PX
+            + DEFAULT_PANEL_CONTROLS_HEIGHT_PX,
+    );
 }
 
 function getVisibleElementBottomPx(selector) {
@@ -813,6 +842,11 @@ function createBackgroundMediaPanelActions({
         timeMs: Number.NaN,
         animationRunning: false,
     };
+    let transcriptRenderSourceUrl = "";
+    let transcriptRowsByKey = new Map();
+    let activeTranscriptRow = null;
+    let activeTranscriptSegmentKey = "";
+    let transcriptSeekItem = null;
 
     function requestWorkflowStackLayout() {
         const documentRef = getDocumentRef();
@@ -830,6 +864,18 @@ function createBackgroundMediaPanelActions({
 
     function getVideo() {
         return getNode("background-media-video");
+    }
+
+    function getTranscriptPanel() {
+        return getNode("background-media-transcript");
+    }
+
+    function getTranscriptList() {
+        return getNode("background-media-transcript-list");
+    }
+
+    function getTranscriptStatus() {
+        return getNode("background-media-transcript-status");
     }
 
     function persistState(patch = {}) {
@@ -1602,6 +1648,127 @@ function createBackgroundMediaPanelActions({
         onRequestPlay();
     }
 
+    function clearActiveTranscriptRow() {
+        if (activeTranscriptRow) {
+            activeTranscriptRow.classList?.remove?.("background-media-panel__transcript-row--active");
+            activeTranscriptRow.removeAttribute?.("aria-current");
+            if (activeTranscriptRow.dataset) activeTranscriptRow.dataset.active = "false";
+        }
+        activeTranscriptRow = null;
+        activeTranscriptSegmentKey = "";
+    }
+
+    function clearTranscriptPanel() {
+        const panel = getTranscriptPanel();
+        setNodeHidden(panel, true);
+        setClassToggled(getPanel(), "background-media-panel--with-transcript", false);
+        setNodeText(getTranscriptStatus(), "");
+        getTranscriptList()?.replaceChildren?.();
+        transcriptRenderSourceUrl = "";
+        transcriptRowsByKey = new Map();
+        transcriptSeekItem = null;
+        clearActiveTranscriptRow();
+    }
+
+    function seekToTranscriptSegment(segment) {
+        const startSeconds = getTranscriptSegmentStartSeconds(segment);
+        const startTimeMs = Number(transcriptSeekItem?.startTimeMs);
+        if (!Number.isFinite(startSeconds) || !Number.isFinite(startTimeMs)) return;
+        onJumpToTime(startTimeMs + startSeconds * 1000, transcriptSeekItem);
+    }
+
+    function appendTranscriptCell(row, className, text) {
+        const node = getDocumentRef()?.createElement?.("span");
+        if (!node) return null;
+        node.className = className;
+        node.textContent = text;
+        row.appendChild?.(node);
+        return node;
+    }
+
+    function createTranscriptRow(segment) {
+        const row = getDocumentRef()?.createElement?.("button");
+        if (!row) return null;
+        const key = getTranscriptSegmentKey(segment);
+        const startSeconds = getTranscriptSegmentStartSeconds(segment);
+        row.type = "button";
+        row.className = "background-media-panel__transcript-row";
+        row.dataset.segmentId = key;
+        row.dataset.startSeconds = Number.isFinite(startSeconds) ? String(startSeconds) : "";
+        row.setAttribute?.("role", "listitem");
+        row.setAttribute?.("aria-current", "false");
+        row.addEventListener?.("click", () => seekToTranscriptSegment(segment));
+        appendTranscriptCell(row, "background-media-panel__transcript-time", formatStatusTime(startSeconds));
+        appendTranscriptCell(row, "background-media-panel__transcript-speaker", getTranscriptSpeakerLabel(segment));
+        appendTranscriptCell(row, "background-media-panel__transcript-text", String(segment?.text || "").trim());
+        return row;
+    }
+
+    function renderTranscriptRows(sourceUrl, transcriptDocument) {
+        const list = getTranscriptList();
+        if (!list || transcriptRenderSourceUrl === sourceUrl) return;
+        const segments = Array.isArray(transcriptDocument?.segments) ? transcriptDocument.segments : [];
+        const rowsByKey = new Map();
+        const rows = segments
+            .map((segment) => {
+                const row = createTranscriptRow(segment);
+                if (row) rowsByKey.set(getTranscriptSegmentKey(segment), row);
+                return row;
+            })
+            .filter(Boolean);
+        if (typeof list.replaceChildren === "function") {
+            list.replaceChildren(...rows);
+        } else {
+            while (list.firstChild) list.removeChild?.(list.firstChild);
+            rows.forEach((row) => list.appendChild?.(row));
+        }
+        transcriptRenderSourceUrl = sourceUrl;
+        transcriptRowsByKey = rowsByKey;
+        activeTranscriptRow = null;
+        activeTranscriptSegmentKey = "";
+    }
+
+    function syncActiveTranscriptRow(segment) {
+        const key = segment ? getTranscriptSegmentKey(segment) : "";
+        if (key && key === activeTranscriptSegmentKey) return;
+        clearActiveTranscriptRow();
+        if (!key) return;
+        const row = transcriptRowsByKey.get(key) || null;
+        if (!row) return;
+        row.classList?.add?.("background-media-panel__transcript-row--active");
+        row.setAttribute?.("aria-current", "true");
+        if (row.dataset) row.dataset.active = "true";
+        activeTranscriptRow = row;
+        activeTranscriptSegmentKey = key;
+        row.scrollIntoView?.({
+            block: "center",
+            behavior: playbackTimelineRunning ? "smooth" : "auto",
+        });
+    }
+
+    function syncTranscriptPanel(item, offsetSeconds, onLoaded) {
+        const sourceUrl = String(item?.transcriptDoc?.sourceUrl || "").trim();
+        transcriptSeekItem = item || null;
+        if (!sourceUrl) {
+            clearTranscriptPanel();
+            return;
+        }
+        const panel = getTranscriptPanel();
+        const status = getTranscriptStatus();
+        setNodeHidden(panel, false);
+        setClassToggled(getPanel(), "background-media-panel--with-transcript", true);
+        const entry = ensureTranscriptDocumentLoaded(sourceUrl, onLoaded);
+        if (entry?.status !== "ready") {
+            setNodeText(status, entry?.status === "error" ? "Transcript unavailable" : "Loading transcript");
+            syncActiveTranscriptRow(null);
+            return;
+        }
+        const segments = Array.isArray(entry.document?.segments) ? entry.document.segments : [];
+        renderTranscriptRows(sourceUrl, entry.document);
+        setNodeText(status, `${segments.length.toLocaleString()} lines`);
+        syncActiveTranscriptRow(findTranscriptSegmentAtTime(segments, offsetSeconds));
+    }
+
     function renderBroadcastAvailabilityState(nearest) {
         const empty = getNode("background-media-empty");
         if (!empty || !nearest?.item) return false;
@@ -1794,6 +1961,7 @@ function createBackgroundMediaPanelActions({
             setControlsHidden(true);
             syncTimeOverlay(Number.NaN, true);
             setCaptionText("");
+            clearTranscriptPanel();
             setHidden("background-media-empty", false);
             setHidden("background-media-live", true);
             if (available) {
@@ -1825,6 +1993,7 @@ function createBackgroundMediaPanelActions({
         syncTimeOverlay(offsetSeconds, false);
         syncCaptionAttribution(activeItem, captionsEnabled);
         syncRenderedCaption(activeItem, offsetSeconds, () => render(lastRenderModel), captionsEnabled);
+        syncTranscriptPanel(activeItem, offsetSeconds, () => render(lastRenderModel));
 
         if (playbackMode === "ready") {
             const keepPausedSource = panelState === "open" && playbackEnabled === true;

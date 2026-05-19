@@ -1965,14 +1965,18 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     display: grid;
     grid-template-rows: auto minmax(0, 1fr) auto;
     width: min(420px, calc(100vw - 20px));
-    height: 248px;
+    height: 476px;
     min-width: 300px;
-    min-height: 220px;
+    min-height: 360px;
     max-width: calc(100vw - 16px);
     max-height: calc(100vh - 16px);
     pointer-events: all;
     resize: none;
     overflow: hidden;
+}
+
+.background-media-panel--with-transcript {
+    grid-template-rows: auto minmax(128px, 0.95fr) minmax(132px, 0.75fr) auto;
 }
 
 .background-media-panel--hidden {
@@ -2294,6 +2298,116 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     display: none;
 }
 
+.background-media-panel__transcript {
+    min-width: 0;
+    min-height: 0;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    border-top: 1px solid rgba(152, 186, 236, 0.14);
+    background: rgba(4, 9, 18, 0.96);
+}
+
+.background-media-panel__transcript[hidden] {
+    display: none;
+}
+
+.background-media-panel__transcript-header {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 10px 6px;
+    border-bottom: 1px solid rgba(152, 186, 236, 0.1);
+    background: rgba(11, 20, 34, 0.8);
+}
+
+.background-media-panel__transcript-label {
+    min-width: 0;
+    overflow: hidden;
+    color: rgba(229, 240, 255, 0.94);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    line-height: 1.1;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.background-media-panel__transcript-status {
+    color: rgba(172, 195, 225, 0.74);
+    font-size: 10px;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+    white-space: nowrap;
+}
+
+.background-media-panel__transcript-list {
+    min-width: 0;
+    min-height: 0;
+    overflow: auto;
+    scrollbar-color: rgba(132, 170, 223, 0.45) rgba(5, 10, 18, 0.6);
+}
+
+.background-media-panel__transcript-row {
+    width: 100%;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: 52px 94px minmax(0, 1fr);
+    align-items: start;
+    gap: 8px;
+    padding: 7px 10px;
+    border: 0;
+    border-bottom: 1px solid rgba(132, 164, 209, 0.08);
+    background: transparent;
+    color: rgba(216, 230, 250, 0.88);
+    font: inherit;
+    font-size: 11px;
+    line-height: 1.35;
+    text-align: left;
+    cursor: pointer;
+}
+
+.background-media-panel__transcript-row:hover,
+.background-media-panel__transcript-row:focus-visible {
+    background: rgba(70, 116, 184, 0.16);
+    outline: none;
+}
+
+.background-media-panel__transcript-row--active {
+    background: rgba(61, 134, 220, 0.2);
+    box-shadow: inset 3px 0 0 rgba(121, 200, 255, 0.88);
+    color: rgba(245, 250, 255, 0.98);
+}
+
+.background-media-panel__transcript-time {
+    color: rgba(139, 174, 220, 0.82);
+    font-size: 10px;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    line-height: 1.35;
+}
+
+.background-media-panel__transcript-speaker {
+    min-width: 0;
+    overflow: hidden;
+    color: rgba(149, 210, 255, 0.94);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    line-height: 1.35;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.background-media-panel__transcript-text {
+    min-width: 0;
+    color: inherit;
+    overflow-wrap: anywhere;
+}
+
 .background-media-panel__controls {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
@@ -2369,11 +2483,28 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 @media (max-width: 600px) {
     .background-media-panel {
         width: min(420px, calc(100vw - 20px));
-        height: 280px;
+        height: min(520px, calc(100vh - 20px));
+    }
+
+    .background-media-panel--with-transcript {
+        grid-template-rows: auto minmax(116px, 0.85fr) minmax(150px, 1fr) auto;
     }
 
     .background-media-panel__controls {
         grid-template-columns: minmax(0, 1fr);
+    }
+
+    .background-media-panel__transcript-row {
+        grid-template-columns: 48px minmax(0, 1fr);
+        gap: 4px 8px;
+    }
+
+    .background-media-panel__transcript-speaker {
+        grid-column: 2;
+    }
+
+    .background-media-panel__transcript-text {
+        grid-column: 2;
     }
 }
 

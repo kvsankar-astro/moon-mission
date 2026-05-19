@@ -29,6 +29,7 @@ describe("background media panel helpers", () => {
         });
         const makeNode = (id) => {
             const children = [];
+            const listeners = new Map();
             const node = {
                 id,
                 tagName: String(id || "").toUpperCase(),
@@ -46,10 +47,27 @@ describe("background media panel helpers", () => {
                         node.dataset[dataName] = String(value);
                     }
                 }),
-                addEventListener: vi.fn(),
+                removeAttribute: vi.fn((name) => {
+                    delete node[name];
+                }),
+                addEventListener: vi.fn((type, handler) => {
+                    const handlers = listeners.get(type) || [];
+                    handlers.push(handler);
+                    listeners.set(type, handlers);
+                }),
+                dispatchEvent: vi.fn((event) => {
+                    const handlers = listeners.get(event?.type) || [];
+                    handlers.forEach((handler) => handler(event));
+                    return true;
+                }),
                 focus: vi.fn(),
-                replaceChildren: vi.fn(() => {
+                scrollIntoView: vi.fn(),
+                replaceChildren: vi.fn((...nextChildren) => {
                     children.splice(0, children.length);
+                    nextChildren.forEach((child) => {
+                        children.push(child);
+                        child.parentNode = node;
+                    });
                 }),
                 appendChild: vi.fn((child) => {
                     children.push(child);
@@ -65,6 +83,7 @@ describe("background media panel helpers", () => {
                 remove: vi.fn(() => {
                     node.parentNode?.removeChild?.(node);
                 }),
+                getAttribute: vi.fn((name) => node[name] ?? null),
                 querySelector: vi.fn(() => null),
                 querySelectorAll: vi.fn((selector) => {
                     if (selector !== 'track[data-background-media-caption-track="true"]') return [];
@@ -107,6 +126,9 @@ describe("background media panel helpers", () => {
             "background-media-time-overlay",
             "background-media-caption-text",
             "background-media-caption-attribution",
+            "background-media-transcript",
+            "background-media-transcript-status",
+            "background-media-transcript-list",
             "background-media-title",
             "background-media-status",
             "background-media-controls",
@@ -757,6 +779,97 @@ describe("background media panel helpers", () => {
             "Jeremy Hansen: The moon is right there.",
         );
         expect(nodes.get("background-media-caption-text").hidden).toBe(false);
+    });
+
+    it("renders a synced broadcast transcript list and scrolls the active line", async () => {
+        const { nodes } = installBackgroundPanelDom();
+        const onJumpToTime = vi.fn();
+        globalThis.fetch = vi.fn(() => Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({
+                schemaVersion: 4,
+                segments: [
+                    {
+                        id: 10,
+                        startSeconds: 8,
+                        endSeconds: 30,
+                        displayStartSeconds: 10,
+                        displayEndSeconds: 12,
+                        displaySpeaker: "Reid Wiseman",
+                        text: "We are looking at Earth.",
+                        status: "ok",
+                    },
+                    {
+                        id: 11,
+                        startSeconds: 20,
+                        endSeconds: 40,
+                        displayStartSeconds: 22,
+                        displayEndSeconds: 25,
+                        displaySpeaker: "Victor Glover",
+                        text: "The Moon is right below us.",
+                        status: "ok",
+                    },
+                ],
+            }),
+        }));
+        const startTimeMs = Date.parse("2026-04-06T16:58:14Z");
+        const actions = createBackgroundMediaPanelActions({
+            getAnimationRunning: () => false,
+            getAnimationRealtime: () => true,
+            onJumpToTime,
+        });
+        openEnabledBackgroundPanel(actions, nodes);
+        const item = {
+            id: "broadcast-transcript-panel",
+            kind: "videoClip",
+            enabled: true,
+            assetUrl: "broadcast-transcript-panel.mp4",
+            playbackRoles: ["background"],
+            startTimeMs,
+            endTimeMs: startTimeMs + 600000,
+            backgroundPlayback: {
+                enabled: true,
+            },
+            transcriptDoc: {
+                sourceUrl: "broadcast-transcript-panel.json",
+            },
+        };
+
+        actions.render({
+            items: [item],
+            timeMs: startTimeMs + 11000,
+            animationRunning: false,
+        });
+        for (let index = 0; index < 5; index += 1) {
+            await Promise.resolve();
+        }
+
+        const transcriptPanel = nodes.get("background-media-transcript");
+        const transcriptList = nodes.get("background-media-transcript-list");
+        expect(transcriptPanel.hidden).toBe(false);
+        expect(nodes.get("background-media-transcript-status").textContent).toBe("2 lines");
+        expect(transcriptList.children).toHaveLength(2);
+        expect(transcriptList.children[0].dataset.active).toBe("true");
+        expect(transcriptList.children[0].scrollIntoView).toHaveBeenCalledWith({
+            block: "center",
+            behavior: "auto",
+        });
+
+        actions.render({
+            items: [item],
+            timeMs: startTimeMs + 23000,
+            animationRunning: false,
+        });
+
+        expect(transcriptList.children[0].dataset.active).toBe("false");
+        expect(transcriptList.children[1].dataset.active).toBe("true");
+        expect(transcriptList.children[1].scrollIntoView).toHaveBeenCalledWith({
+            block: "center",
+            behavior: "auto",
+        });
+
+        transcriptList.children[1].dispatchEvent({ type: "click" });
+        expect(onJumpToTime).toHaveBeenCalledWith(startTimeMs + 22000, item);
     });
 
     it("toggles broadcast captions from the header button", async () => {
