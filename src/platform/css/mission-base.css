@@ -525,6 +525,10 @@ textarea {
     display: none;
 }
 
+.dockview-panels-enabled .mission-main-view-pane > #header-pill-strip {
+    display: none !important;
+}
+
 .dockview-panels-enabled .mission-main-view-pane .mission-main-view-annotation-bar {
     position: absolute;
     top: 10px;
@@ -664,11 +668,11 @@ textarea {
 .dockview-panels-enabled .mission-main-view-pane .mission-main-view-toggle-launcher {
     position: absolute;
     top: 10px;
-    right: 10px;
+    left: 10px;
     z-index: 19;
     display: flex;
     flex-direction: column;
-    align-items: flex-end;
+    align-items: flex-start;
     pointer-events: all;
 }
 
@@ -734,6 +738,29 @@ textarea {
 .dockview-panels-enabled .mission-main-view-pane .mission-main-view-view-launcher__body .header-pill-strip__row {
     justify-content: flex-start;
     align-content: flex-start;
+}
+
+.dockview-panels-enabled .mission-main-view-pane .mission-main-view-view-launcher__body .header-pill-group {
+    display: grid;
+    grid-template-columns: 62px minmax(0, max-content);
+    justify-content: start;
+    gap: 6px;
+}
+
+.dockview-panels-enabled .mission-main-view-pane .mission-main-view-view-launcher__body .header-pill-group__label {
+    min-width: 0;
+    width: 62px;
+    text-align: left;
+}
+
+.dockview-panels-enabled .mission-main-view-pane .mission-main-view-view-launcher__body .header-pill-segment {
+    gap: 2px;
+}
+
+.dockview-panels-enabled .mission-main-view-pane .mission-main-view-view-launcher__body .header-pill-segment__btn {
+    min-width: max-content;
+    padding: 0 8px;
+    white-space: nowrap;
 }
 
 .dockview-panels-enabled .mission-main-view-pane .mission-main-view-view-launcher__body .mission-main-view-advanced-pill {
