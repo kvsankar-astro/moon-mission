@@ -1,6 +1,6 @@
 # Artemis II Media Workstream
 
-Last updated: 2026-05-16
+Last updated: 2026-05-19
 
 This is the current workstream doc for Artemis II mission media, long-form broadcast streams, video sync anchors, transcripts, attribution, and launch communications. Detailed specs and handoffs remain in their original docs, but active decisions and next actions should roll up here.
 
@@ -21,7 +21,9 @@ This is the current workstream doc for Artemis II mission media, long-form broad
 - Authored media metadata lives in `assets/artemis2/data/media-manifest.json5`; runtime consumes compiled `media-manifest.json`.
 - Discrete images, short videos, and audio clips are normalized through the media domain modules and coordinated by `media-timeline-coordination.js`.
 - Mission Media is disabled in compare mode because media uses real mission chronology.
-- Long-form stream metadata exists in the manifest, but production readiness depends on hosting verification, stream sync validation, and panel/playback behavior.
+- Long-form Flyby Broadcast stream metadata exists in the manifest and is wired to the workflow Broadcast panel.
+- The Broadcast panel renders captions from the combined transcript JSON, with per-part VTT files retained as fallback/external caption artifacts.
+- The Broadcast panel includes a synchronized transcript list: current line highlighting follows mission playback, rows auto-scroll, and row clicks seek to the corresponding broadcast time.
 
 ## Current Decisions
 
@@ -44,13 +46,15 @@ This is the current workstream doc for Artemis II mission media, long-form broad
    - Collect at least two anchors per continuous broadcast segment.
    - Solve local affine mappings from video time to mission time.
    - Persist the segment map in Artemis II media metadata or an attached sidecar.
-4. Integrate diarization artifacts.
-   - First-pass subtitle MVP is implemented with a combined WebVTT track generated from the canonical Part 1 and Part 2 JSON artifacts.
-   - Runtime attaches the WebVTT as a native video text track and renders the transcript attribution in the Flyby Broadcast panel.
-   - Keep JSON/YAML artifacts available for later searchable transcript, speaker filters, confidence styling, and raw transcript mode.
+4. Maintain diarization artifact integration.
+   - Runtime consumes `transcriptDoc` from the Artemis II media manifest and treats `combined.json` as the single source of truth for unified timeline captions and transcript rows.
+   - Runtime uses schema v4 `displayStartSeconds` / `displayEndSeconds` for user-facing caption, seek, and transcript timing. Raw `startSeconds` / `endSeconds` remain provenance only.
+   - Per-part `.vtt` files remain staged as fallback/external caption artifacts.
+   - The current data snapshot in `../moon-mission-data` comes from transcribe commit `b8fd81d Correct Artemis II proper noun transcripts`.
 5. Add transcript/search discovery.
-   - Start with synchronized captions or transcript panel behavior.
-   - Later explore diarization -> LLM -> search, speaker timeline, and mission-event annotation features.
+   - Synchronized captions and transcript panel behavior are implemented.
+   - Next runtime surfaces: entity search from `artemis2-lunar-flyby-broadcast.index.json`, speaker filters, confidence styling, and event/annotation linkage.
+   - Later explore diarization -> LLM -> search enrichment, speaker timeline, and mission-event annotation features.
 6. Add attribution coverage.
    - Cover Hank Green / Artemis Timeline provenance.
    - Cover NASA media and broadcast source credit.
@@ -73,27 +77,43 @@ Known issue: the anchor set is not globally linear. Likely causes include archiv
 
 ## Transcript State
 
-Part 1 and Part 2 now have canonical app-facing JSON artifacts in `C:\sankar\projects\transcribe\transcripts\`:
+Canonical app-facing transcript artifacts are generated in the sibling transcription workspace under:
 
-- `artemis2-lunar-flyby-broadcast-part1.json`
-- `artemis2-lunar-flyby-broadcast-part2.json`
+- `C:\sankar\projects\transcribe\transcripts\artemis2\outputs\`
 
-Both are post-disambiguation and include segment `status`, `speakerConfidence`, and a top-level `speakers` map. WebVTT subtitle tracks and YAML label/provenance files sit alongside them.
+Runtime-staged artifacts live in the data repo under:
 
-Transcript timestamps are video-relative to each original per-part `.webm`; each part starts at 0. If the runtime concatenates both parts, add `22373` seconds (`06:12:53`) to Part 2 timestamps.
+- `../moon-mission-data/assets/artemis2/media/transcripts/`
 
-Default display policy should hide `silent` and `garbled`, hide `hallucination` outside raw transcript mode, and collapse consecutive `duplicate` cues. Speaker labels are inferred and should be treated as non-authoritative.
+The app manifest references those staged artifacts through repository-relative paths:
 
-The subtitle MVP uses `scripts/build-artemis2-broadcast-captions.mjs` to generate:
+- `artemis2-lunar-flyby-broadcast-combined.json`: unified Part 1 + Part 2 schema v4 transcript, all speakers, word timings where reliable, and tight display timings.
+- `artemis2-lunar-flyby-broadcast.index.json`: curated entity/search index. Mention `startSeconds` / `endSeconds` use display timing; raw segment lineage is preserved as `segmentStartSeconds` / `segmentEndSeconds`.
+- `artemis2-lunar-flyby-broadcast-part1.vtt` and `artemis2-lunar-flyby-broadcast-part2.vtt`: per-video fallback/external WebVTT caption files rebuilt from repaired display timings.
+- `artemis2-lunar-flyby-broadcast-part1.labels.yaml` and `artemis2-lunar-flyby-broadcast-part2.labels.yaml`: speaker/provenance sidecars.
 
-- `../moon-mission-data/assets/artemis2/media/streams/lunar-flyby/v1/artemis2-lunar-flyby-broadcast.en.vtt`
+Runtime integration status:
 
-The generated WebVTT is staged locally under `assets/artemis2/media/streams/lunar-flyby/v1/` and referenced from the Artemis II media manifest as a `captionTracks[]` entry.
+- The Broadcast panel loads `combined.json` via `transcriptDoc`.
+- Caption overlay text is rendered from the normalized JSON transcript before VTT fallback.
+- The synchronized transcript panel renders all normalized transcript segments, highlights the current conversation, auto-scrolls on active-line changes, and lets users click rows to seek.
+- Transcript highlighting deliberately uses a slightly forgiving readable window so very short lines are not skipped between playback ticks. Caption overlay timing remains strict to `displayStartSeconds` / `displayEndSeconds`.
+- The normalizer keeps valid schema v4 display-timed segments even when raw Whisper `startSeconds` and `endSeconds` are equal. This preserves all 3,794 current combined transcript segments.
 
-Before runtime integration, decide:
+Important data rules:
 
-- storage location for JSON transcript tracks beyond the generated WebVTT subtitle MVP
-- whether the next UI exposure is searchable transcript, speaker timeline, mission-event annotations, or raw transcript mode
+- Treat `combined.json` as the single source of truth for unified-timeline UI.
+- Use `displayStartSeconds` / `displayEndSeconds` for captions, seeking, transcript rows, and visible entity mentions.
+- Treat `startSeconds` / `endSeconds` as raw Whisper provenance only.
+- Use the integer Part 2 offset `22373` seconds, matching `combined.json.partOffsets.part2.start`.
+- Speaker labels are inferred and should be treated as non-authoritative.
+
+Current remaining transcript UX work:
+
+- Entity search/browse UI from `artemis2-lunar-flyby-broadcast.index.json`.
+- Speaker filter chips and deterministic speaker colors.
+- Confidence-driven styling for low-confidence speakers and unidentified segments.
+- Collapsing `status: duplicate` runs into a compact indicator if duplicate cues become visually noisy.
 
 ## Reference Details To Keep Out Of This File
 

@@ -1,6 +1,6 @@
 # Current Plan
 
-Last updated: 2026-05-18
+Last updated: 2026-05-19
 
 This is the live planning surface for active work. Feature docs, investigations, and handoff notes may explain context, but open TODOs should roll up here or into a linked workstream doc.
 
@@ -136,7 +136,7 @@ These items came from the 2026-05-16 context switch. Treat them as queued work, 
 | Investigate Flyby Broadcast panel going totally dark. | Open; reproduce again | [artemis2-media-workstream.md](artemis2-media-workstream.md) |
 | Fix Media panel overlap with events. | Open; partly mitigated by default-layout work; user inputs pending | [performance-workstream.md](performance-workstream.md) |
 | Adjust Earth exposure during lunar eclipse so it cuts down to normal when only Earth is in view. | Done | [../design/specs/frame-and-shoot-lighting-exposure-spec.md](../design/specs/frame-and-shoot-lighting-exposure-spec.md) |
-| Integrate diarization artifacts. | Caption sync implemented with schema v4 display timing; richer transcript/search remains open | [artemis2-media-workstream.md](artemis2-media-workstream.md) |
+| Integrate diarization artifacts. | Mostly done for runtime: manifest points to combined schema v4 transcript JSON, entity index, and VTT fallback files; Broadcast panel renders captions from JSON, shows a scroll-synced click-to-seek transcript panel, and preserves short highlight windows. Search/entity browser remains open. | [artemis2-media-workstream.md](artemis2-media-workstream.md) |
 | Change crater search and filter settings. | Done; tabbed Show Always, Hover, and additive Search model implemented | [../design/specs/lunar-feature-controls-spec.md](../design/specs/lunar-feature-controls-spec.md) |
 | Explore diarization -> LLM -> search and other AI-assisted discovery features. | Open | [artemis2-media-workstream.md](artemis2-media-workstream.md) |
 | Fix play, media, and control bugs. | Open | [performance-workstream.md](performance-workstream.md) |

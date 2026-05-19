@@ -2,9 +2,17 @@
 
 Captured from the transcript/synthesis agent response. This document is intended to preserve the full handoff detail before integration work continues.
 
+> 2026-05-19 update: the transcript workspace has since been reorganized under
+> `C:\sankar\projects\transcribe\transcripts\artemis2\`. The current canonical
+> app-facing files are under `transcripts\artemis2\outputs\`, and the runtime
+> copies are committed in `../moon-mission-data/assets/artemis2/media/transcripts/`.
+> The latest staged snapshot is from transcribe commit
+> `b8fd81d Correct Artemis II proper noun transcripts`.
+
 ## 1. Artifact Inventory
 
-All artifacts live in `C:\sankar\projects\transcribe\transcripts\`. None are committed to either repo yet.
+Canonical generated artifacts now live in `C:\sankar\projects\transcribe\transcripts\artemis2\outputs\`.
+Runtime copies of the app-facing artifacts are committed in `../moon-mission-data/assets/artemis2/media/transcripts/`.
 
 ### Canonical Artifacts
 
@@ -66,12 +74,12 @@ Older format, superseded by `.aligned.json`. Keep only as fallback.
 
 Files: `.aligned.json`
 
-Schema version: `3`
+Schema version: `4`
 
 ```json
 {
   "source": "artemis2-lunar-flyby-broadcast-part1.webm",
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "model": {
     "transcription": "faster-whisper large-v3 (beam_size=5, vad_filter=True, condition_on_previous_text=False, no_repeat_ngram_size=4)",
     "diarization": "pyannote/speaker-diarization-3.1"
@@ -104,6 +112,8 @@ Schema version: `3`
       "id": 412,
       "startSeconds": 3605.0,
       "endSeconds": 3610.0,
+      "displayStartSeconds": 3605.02,
+      "displayEndSeconds": 3608.45,
       "speaker": "JEREMY_HANSEN",
       "displaySpeaker": "Jeremy Hansen",
       "text": "to make sure this record is not long lived.",
@@ -121,7 +131,8 @@ Schema version: `3`
 Segment field notes:
 
 - `id`: integer, dense, zero-based per file.
-- `startSeconds` and `endSeconds`: floats, seconds from the file start.
+- `startSeconds` and `endSeconds`: floats, raw Whisper segment boundaries from the file start; provenance only for display surfaces.
+- `displayStartSeconds` and `displayEndSeconds`: floats, tight schema v4 display window; use for captions, transcript rows, click-to-seek, and visible entity mentions.
 - `speaker`: canonical key, stable for filtering/coloring.
 - `displaySpeaker`: user-facing string.
 - `status`: `ok`, `silent`, `hallucination`, `duplicate`, or `garbled`.
@@ -132,14 +143,14 @@ Segment field notes:
 
 File: `combined.json`
 
-Schema version: `3`
+Schema version: `4`
 
-Same segment schema as aligned JSON, plus `originPart`, `originStartSeconds`, and top-level `partOffsets`.
+Same segment schema as aligned JSON, including schema v4 display timing fields, plus `originPart`, `originStartSeconds`, and top-level `partOffsets`.
 
 ```json
 {
   "source": "artemis2-lunar-flyby-broadcast (combined Part 1 + Part 2)",
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "model": {},
   "alignment": {},
   "timeBase": "seconds, concatenated timeline: part1 then part2",
@@ -153,6 +164,8 @@ Same segment schema as aligned JSON, plus `originPart`, `originStartSeconds`, an
     {
       "startSeconds": 25978.0,
       "endSeconds": 25983.0,
+      "displayStartSeconds": 25978.02,
+      "displayEndSeconds": 25980.45,
       "originPart": "part2",
       "originStartSeconds": 3605.0,
       "words": [
@@ -165,7 +178,7 @@ Same segment schema as aligned JSON, plus `originPart`, `originStartSeconds`, an
 
 Combined JSON notes:
 
-- `startSeconds` and `endSeconds` are shifted into the combined timeline.
+- `startSeconds`, `endSeconds`, `displayStartSeconds`, and `displayEndSeconds` are shifted into the combined timeline.
 - `originPart` is `"part1"` or `"part2"`.
 - `originStartSeconds` is the original per-part timestamp before shifting.
 - `words[].start` and `words[].end` are also shifted into the combined timeline.
@@ -176,7 +189,8 @@ Combined JSON notes:
 | Field | Meaning |
 | --- | --- |
 | `id` | Per-file integer, dense, zero-based. Combined IDs are renumbered: Part 1 keeps its IDs; Part 2 gets `previousMaxId + 1` upward. Do not assume a Part 2 combined ID equals its per-part ID. |
-| `startSeconds` / `endSeconds` | Always seconds from the time-base origin. In per-part JSON, origin is the start of that part's `.webm`; in combined JSON, origin is the start of Part 1's `.webm`, with Part 2 shifted by `partOffsets.part2.start`. |
+| `startSeconds` / `endSeconds` | Raw Whisper segment boundaries from the time-base origin. In per-part JSON, origin is the start of that part's `.webm`; in combined JSON, origin is the start of Part 1's `.webm`, with Part 2 shifted by `partOffsets.part2.start`. Treat these as provenance only for display surfaces. |
+| `displayStartSeconds` / `displayEndSeconds` | Tight schema v4 display window from word timing or repair heuristics. Use these for captions, transcript rows, click-to-seek, and visible entity mentions. |
 | `originStartSeconds` | Combined JSON only. The original per-part `startSeconds` before shifting. Use this to map back to per-part `.vtt` cues or to re-run alignment. |
 | `originPart` | Combined JSON only. `"part1"` or `"part2"`. |
 | `speaker` | Canonical key, machine-readable. Stable across all artifacts. Use as filter chip / CSS class. |
@@ -814,33 +828,33 @@ The fast steps, export, concat, and index, are safe to run repeatedly.
 
 ### App Code: `moon-mission`
 
-1. `[P0]` Switch caption rendering to read from `combined.json` segments. Keep `.vtt` as fallback / external export.
-2. `[P0]` Add manifest fields `transcriptDoc`, `searchIndex`, and `partOffsets`.
-3. `[P0]` Build a transcript panel: scroll-sync to `currentTime`, click-to-seek.
+1. `[Done]` Switch caption rendering to read from `combined.json` segments. Keep `.vtt` as fallback / external export.
+2. `[Done]` Add manifest fields `transcriptDoc`, `searchIndex`, and `partOffsets`.
+3. `[Done]` Build a transcript panel: scroll-sync to `currentTime`, click-to-seek.
 4. `[P1]` Add speaker filter chips with deterministic color palette.
 5. `[P1]` Wire a search box to `aliasIndex` plus entity card display.
-6. `[P2]` Strip Whisper artifact prefixes such as `SECRETARY POMPEO` and `PRESIDENT DONALD J.` before display.
+6. `[Done/defense-in-depth]` Strip Whisper artifact prefixes such as `SECRETARY POMPEO` and `PRESIDENT DONALD J.` before display. The current data-generation pipeline also removes known artifacts and proper-noun errors.
 7. `[P2]` Render `duplicate` cues as a collapsed `xN` indicator instead of N separate cues.
 8. `[P2]` Add confidence-driven styling: italic / dim low-confidence speakers.
 
 ### Data Staging: `moon-mission-data`
 
-1. `[P0]` Decide canonical home for `combined.json`, `index.json`, `.vtt` files, and both `.labels.yaml` files. Recommendation: `moon-mission-data/artemis2/transcripts/`.
-2. `[P0]` Add a README in that directory pointing to this handoff doc and the regeneration commands.
+1. `[Done]` Canonical runtime home is `../moon-mission-data/assets/artemis2/media/transcripts/`.
+2. `[Done]` Add a README in that directory pointing to this handoff doc and the regeneration commands.
 3. `[P1]` Commit a `regenerate.md`, or move Section 9 content there, so anyone can rebuild from source.
 4. `[P2]` Decide whether `INTEGRATION.md` from the `transcribe` workspace migrates here.
 
 ### UX
 
-1. `[P0]` Captions: confirm browser-native `<track>` rendering works in the existing player; if not, choose custom renderer.
-2. `[P1]` Transcript panel layout: side panel? bottom sheet? click-to-jump behavior?
+1. `[Done]` Captions: runtime now renders custom caption text from JSON; `.vtt` remains fallback/external caption data.
+2. `[Done]` Transcript panel layout: implemented inside the Broadcast panel below video, with click-to-jump behavior and auto-scroll.
 3. `[P1]` Decide how `UNRESOLVED` / `UNKNOWN` are displayed: italic "Unidentified", or hidden by default with toggle?
 4. `[P2]` Entity browser UX: category list -> entity list -> mentions list.
 5. `[P2]` Mission-event timeline markers above the player.
 
 ### Verification
 
-1. `[P0]` Smoke test: load `combined.json` in app, scroll, seek, confirm cues render in sync.
+1. `[Done/continue spot-checking]` Smoke test: load `combined.json` in app, scroll, seek, confirm cues render in sync.
 2. `[P1]` Spot-check 20 random word-level timestamps against the actual video; confirm drift is at or below 200 ms.
 3. `[P1]` Spot-check borderline-confidence segments, such as the `SCIENCE_OFFICER` mixed cluster; confirm labels are tolerable.
 4. `[P2]` Add the property tests listed in Section 5.
@@ -892,3 +906,40 @@ Updated transcript tooling:
 - Updated: `scripts/concat_parts.py`
 - Updated: `scripts/build_index.py`
 - Updated docs: `docs/HANDOFF.md`, `docs/PIPELINE.md`
+
+## 12. App Integration Update - 2026-05-19
+
+The first runtime integration is complete in `moon-mission`:
+
+- Artemis II media manifest references:
+  - `transcriptDoc`: `../media/transcripts/artemis2-lunar-flyby-broadcast-combined.json`
+  - `searchIndex`: `../media/transcripts/artemis2-lunar-flyby-broadcast.index.json`
+  - `partOffsets`: Part 1 `0..22373`, Part 2 `22373..36599`
+- The Broadcast panel renders captions from `combined.json` via `transcriptDoc`; VTT remains fallback/external caption data.
+- The Broadcast panel includes a synchronized transcript list:
+  - renders all normalized schema v4 transcript segments,
+  - highlights the current conversation,
+  - auto-scrolls when the active row changes,
+  - lets row clicks seek to the row's `displayStartSeconds` on the unified broadcast timeline.
+- Transcript row highlighting uses a forgiving readable window for very short segments so lines are not skipped between playback ticks. Caption overlay timing remains strict to the schema v4 display range.
+- The transcript normalizer now accepts valid display-timed segments even when raw Whisper `startSeconds` and `endSeconds` are equal. This preserves all `3,794` current combined transcript segments.
+
+Current staged data snapshot:
+
+- Transcribe commit: `b8fd81d Correct Artemis II proper noun transcripts`
+- Data repo commit: `185f8c3 Update Artemis II transcript corrections`
+- App transcript panel/highlight commits:
+  - `67e5272 Add broadcast transcript panel`
+  - `412cba4 Fix transcript highlight gaps`
+
+Important integration rule:
+
+- Use `displayStartSeconds` / `displayEndSeconds` for user-facing caption, transcript, seek, and entity mention timing.
+- Treat raw `startSeconds` / `endSeconds` as provenance only.
+
+Remaining runtime work:
+
+- Build entity search/browse UI from `artemis2-lunar-flyby-broadcast.index.json`.
+- Add speaker filters and deterministic speaker colors.
+- Add confidence styling for low-confidence speakers and unidentified segments.
+- Decide whether and how to collapse visible `status: duplicate` runs.

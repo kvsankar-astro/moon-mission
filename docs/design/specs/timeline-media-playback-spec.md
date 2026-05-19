@@ -181,6 +181,18 @@ All user-visible time changes must converge on the mission clock, then fan out:
 Time controls should not directly update media as the primary action. Media
 sync is a downstream effect of the mission-clock commit.
 
+Transcript sync is also downstream of the mission-clock commit:
+
+- Broadcast captions should use strict schema v4 display timing from the
+  transcript document: `displayStartSeconds <= time < displayEndSeconds`.
+- Transcript panel row highlighting may use a slightly forgiving readable
+  window for very short utterances so rows are not skipped between playback
+  ticks.
+- Row click-to-seek should seek to the row's `displayStartSeconds` on the
+  unified broadcast timeline.
+- Raw transcript `startSeconds` / `endSeconds` are provenance ranges, not
+  user-facing display windows.
+
 ## Timeline Dock Semantics
 
 The timeline dock separates click-to-seek and drag-to-pan regions:

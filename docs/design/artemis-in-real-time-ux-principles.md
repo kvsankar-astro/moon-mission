@@ -124,7 +124,8 @@ The photo timeline should not be just a gallery. It should be a time-indexed vis
 Transcript should support multiple levels:
 
 - captions/subtitles for active broadcast or clip playback,
-- a searchable transcript panel,
+- a synchronized transcript panel that highlights and scrolls with playback,
+- search over transcript entities, events, speakers, and objects,
 - speaker/role filtering when diarization is reliable,
 - transcript lines as mission-time navigation anchors,
 - transcript snippets attached to events and media.
