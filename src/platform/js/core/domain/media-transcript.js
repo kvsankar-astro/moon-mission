@@ -25,25 +25,26 @@ function normalizeTranscriptText(value) {
 
 function normalizeTranscriptSegment(segment) {
     if (!segment || typeof segment !== "object" || Array.isArray(segment)) return null;
-    const startSeconds = toFiniteNumber(segment.startSeconds);
-    const endSeconds = toFiniteNumber(segment.endSeconds);
+    const rawStartSeconds = toFiniteNumber(segment.startSeconds);
+    const rawEndSeconds = toFiniteNumber(segment.endSeconds);
     const rawDisplayStartSeconds = toFiniteNumber(segment.displayStartSeconds);
     const rawDisplayEndSeconds = toFiniteNumber(segment.displayEndSeconds);
     const displayStartSeconds = Number.isFinite(rawDisplayStartSeconds)
         ? rawDisplayStartSeconds
-        : startSeconds;
+        : rawStartSeconds;
     const displayEndSeconds = Number.isFinite(rawDisplayEndSeconds)
         ? rawDisplayEndSeconds
-        : endSeconds;
+        : rawEndSeconds;
+    const startSeconds = Number.isFinite(rawStartSeconds) ? rawStartSeconds : displayStartSeconds;
+    const endSeconds = Number.isFinite(rawEndSeconds) ? rawEndSeconds : displayEndSeconds;
     const text = normalizeTranscriptText(segment.text);
     const status = asTrimmedString(segment.status || "ok").toLowerCase();
     if (
-        !Number.isFinite(startSeconds)
-        || !Number.isFinite(endSeconds)
-        || endSeconds <= startSeconds
-        || !Number.isFinite(displayStartSeconds)
+        !Number.isFinite(displayStartSeconds)
         || !Number.isFinite(displayEndSeconds)
         || displayEndSeconds <= displayStartSeconds
+        || !Number.isFinite(startSeconds)
+        || !Number.isFinite(endSeconds)
         || !text
         || HIDDEN_TRANSCRIPT_STATUSES.has(status)
     ) {
@@ -109,6 +110,38 @@ function findTranscriptSegmentAtTime(segments, seconds) {
     return null;
 }
 
+function findTranscriptSegmentForHighlight(segments, seconds, {
+    holdSeconds = 1.25,
+    minimumVisibleSeconds = 1.2,
+} = {}) {
+    const safeSeconds = Number(seconds);
+    if (!Array.isArray(segments) || !Number.isFinite(safeSeconds)) return null;
+    let low = 0;
+    let high = segments.length - 1;
+    let candidateIndex = -1;
+    while (low <= high) {
+        const mid = Math.floor((low + high) / 2);
+        const segment = segments[mid];
+        if (safeSeconds < segment.displayStartSeconds) {
+            high = mid - 1;
+        } else {
+            candidateIndex = mid;
+            low = mid + 1;
+        }
+    }
+    if (candidateIndex < 0) return null;
+    const segment = segments[candidateIndex];
+    if (safeSeconds < segment.displayEndSeconds) return segment;
+    const duration = Math.max(0, segment.displayEndSeconds - segment.displayStartSeconds);
+    const readableEnd = Math.max(
+        segment.displayEndSeconds + Math.max(0, Number(holdSeconds) || 0),
+        segment.displayStartSeconds + Math.max(duration, Number(minimumVisibleSeconds) || 0),
+    );
+    const nextStart = Number(segments[candidateIndex + 1]?.displayStartSeconds);
+    const cappedReadableEnd = Number.isFinite(nextStart) ? Math.min(readableEnd, nextStart) : readableEnd;
+    return safeSeconds < cappedReadableEnd ? segment : null;
+}
+
 function formatTranscriptSegmentCaption(segment) {
     if (!segment) return "";
     const text = normalizeTranscriptText(segment.text);
@@ -118,6 +151,7 @@ function formatTranscriptSegmentCaption(segment) {
 }
 
 export {
+    findTranscriptSegmentForHighlight,
     findTranscriptSegmentAtTime,
     formatTranscriptSegmentCaption,
     normalizeTranscriptDocument,

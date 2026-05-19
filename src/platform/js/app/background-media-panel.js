@@ -18,6 +18,7 @@ import {
 } from "../utils/time-utils.js";
 import { buildMediaStreamSyncPlan } from "../core/domain/media-stream-sync.js";
 import {
+    findTranscriptSegmentForHighlight,
     findTranscriptSegmentAtTime,
     formatTranscriptSegmentCaption,
     normalizeTranscriptDocument,
@@ -1766,7 +1767,7 @@ function createBackgroundMediaPanelActions({
         const segments = Array.isArray(entry.document?.segments) ? entry.document.segments : [];
         renderTranscriptRows(sourceUrl, entry.document);
         setNodeText(status, `${segments.length.toLocaleString()} lines`);
-        syncActiveTranscriptRow(findTranscriptSegmentAtTime(segments, offsetSeconds));
+        syncActiveTranscriptRow(findTranscriptSegmentForHighlight(segments, offsetSeconds));
     }
 
     function renderBroadcastAvailabilityState(nearest) {

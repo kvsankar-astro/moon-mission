@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+    findTranscriptSegmentForHighlight,
     findTranscriptSegmentAtTime,
     formatTranscriptSegmentCaption,
     normalizeTranscriptDocument,
@@ -76,5 +77,57 @@ describe("media transcript domain", () => {
         }));
         expect(findTranscriptSegmentAtTime(transcript.segments, 31541)?.id).toBe(3223);
         expect(findTranscriptSegmentAtTime(transcript.segments, 31600)).toBe(null);
+    });
+
+    it("keeps zero-duration raw transcript segments when display timing is valid", () => {
+        const transcript = normalizeTranscriptDocument({
+            schemaVersion: 4,
+            segments: [
+                {
+                    id: 946,
+                    startSeconds: 8752,
+                    endSeconds: 8752,
+                    displayStartSeconds: 8752,
+                    displayEndSeconds: 8752.05,
+                    displaySpeaker: "Leah Cheshier-Mustachio",
+                    text: "Thanks for that.",
+                    status: "ok",
+                },
+            ],
+        });
+
+        expect(transcript.segments).toHaveLength(1);
+        expect(findTranscriptSegmentAtTime(transcript.segments, 8752.02)?.id).toBe(946);
+    });
+
+    it("uses a forgiving highlight window for very short transcript lines", () => {
+        const transcript = normalizeTranscriptDocument({
+            schemaVersion: 4,
+            segments: [
+                {
+                    id: 1,
+                    startSeconds: 10,
+                    endSeconds: 10,
+                    displayStartSeconds: 10,
+                    displayEndSeconds: 10.05,
+                    text: "Copy.",
+                    status: "ok",
+                },
+                {
+                    id: 2,
+                    startSeconds: 14,
+                    endSeconds: 16,
+                    displayStartSeconds: 14,
+                    displayEndSeconds: 16,
+                    text: "Next line.",
+                    status: "ok",
+                },
+            ],
+        });
+
+        expect(findTranscriptSegmentAtTime(transcript.segments, 10.8)).toBe(null);
+        expect(findTranscriptSegmentForHighlight(transcript.segments, 10.8)?.id).toBe(1);
+        expect(findTranscriptSegmentForHighlight(transcript.segments, 13.8)).toBe(null);
+        expect(findTranscriptSegmentForHighlight(transcript.segments, 14.2)?.id).toBe(2);
     });
 });
