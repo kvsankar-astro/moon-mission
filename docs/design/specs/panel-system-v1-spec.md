@@ -55,8 +55,10 @@ These items are still design targets, not current shipped behavior:
   - `Flyby in Focus`
   - `Splashdown in Spotlight`
   - `Mission Media`
+  - `Flyby Broadcast`
 - These use the shared shell, but own specialized internal UI and behavior.
-- Workflow panels may define panel-specific default geometry. High-focus workflows can open maximized, while `Mission Media` defaults closed and opens as a compact resizable panel.
+- On desktop, the Dockview workspace is the default layout. The main mission view is the center pane, `Flyby Broadcast` and `Mission Media` open in the left rail, and `Frame and Shoot` plus a vertical aux stack (`Craft -> Moon`, `Craft -> Earth`, `Orbit`) open in the right rail. `Splashdown in Spotlight` remains closed until requested. Legacy overlay behavior remains available during rollout with `?legacyPanels=1` or `?dockPanels=0`.
+- Workflow panels may define panel-specific default geometry for the legacy overlay path. In the Dockview path, panel geometry is owned by Dockview while panel-specific content state remains owned by the panel module.
 
 ### 3. `Panels` launcher
 
@@ -106,7 +108,22 @@ These items are still design targets, not current shipped behavior:
   - geometry
   - maximize state
   - z-order
-  - panel-local mutable settings
+- panel-local mutable settings
+
+### Dockview workflow workspace
+
+- Desktop workflow panels use `dockview-core` through `src/platform/js/app/panel-layout-host.js`.
+- Feature modules must not import Dockview directly; they add/focus/close panels through the layout host exposed by the workspace.
+- The workspace persists Dockview layout JSON separately from legacy panel geometry.
+- Closing a Dockview tab maps back to the panel registry `close` action.
+- The first-load desktop layout opens the left and right rails by default:
+  - left: `Flyby Broadcast` above `Mission Media`
+  - center: main mission view
+  - right: `Frame and Shoot` beside a vertical aux stack with `Craft -> Moon`, `Craft -> Earth`, and `Orbit`
+- The temporary fallback flags are:
+  - `?legacyPanels=1`
+  - `?dockPanels=0`
+  - `?dockPanels=1` to force the Dockview workspace on narrow viewports during testing.
 
 ## Mission Configuration
 

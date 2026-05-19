@@ -87,6 +87,7 @@ Useful pages:
   - `Flyby in Focus`
   - `Splashdown in Spotlight`
   - `Mission Media`
+  - `Flyby Broadcast`
 - `Flyby in Focus` is implemented as the composer-mode auxiliary panel in `src/platform/js/app/auxiliary-camera-views.js` (`PANEL_SPECS` entry `earth-rise-composer`).
   - It is exposed from the `Flyby` focus pill and the auxiliary panel chip strip.
   - It uses the composer timeline/camera stack tied to the Artemis II lunar flyby window rather than the simpler generic camera panel flow.
@@ -103,6 +104,7 @@ Useful pages:
   - shows RTC-3-through-splashdown return events and a metrics strip for distance, velocity, altitude, and location
   - marks the post-HORIZONS descent segment as app-generated when the modeled continuation is in view
 - When changing any Artemis II panel, update the panel DOM, panel runtime module, and pill/launcher wiring together. These features are mission-specific enough that code and docs drift easily if only one layer changes.
+- On desktop, the Dockview workspace is the default mission layout. The main view is the center pane, `Flyby Broadcast` and `Mission Media` open in the left rail, and `Frame and Shoot` plus a vertical aux stack (`Craft -> Moon`, `Craft -> Earth`, `Orbit`) open in the right rail. `Splashdown in Spotlight` remains closed until requested. Use `?legacyPanels=1` or `?dockPanels=0` to force the previous overlay behavior while debugging. Use `?dockPanels=1` to force the workspace on narrow viewports for targeted testing.
 - `Mission Media` is a config-gated workflow panel (`workflow:media-browser`) implemented by:
   - authored metadata in `assets/artemis2/data/media-manifest.json5`
   - compiled runtime metadata in `assets/artemis2/data/media-manifest.json`
@@ -110,6 +112,7 @@ Useful pages:
   - panel rendering/lifecycle in `src/platform/js/app/media-browser-panel.js`
   - media domain helpers under `src/platform/js/core/domain/media-*.js`
 - The media workflow is disabled unless the mission config enables `ui.panels.defaults["workflow:media-browser"].enabled`. Compare mode disables it even when configured.
+- `Flyby Broadcast` is the background media workflow panel (`workflow:background-media`) implemented by `src/platform/js/app/background-media-panel.js` and coordinated by `src/platform/js/app/media-timeline-coordination.js`.
 - Runtime assets resolve through the public R2 asset origin `https://assets.sankara.net/moon-mission/`; keep normal asset references repository-relative and let the runtime resolver apply the asset base. Shared runtime catalogs such as `assets/lunar-features.json` are staged from `../moon-mission-data`. See [docs/operations/r2-asset-hosting.md](operations/r2-asset-hosting.md).
 - The current Artemis II media implementation stores mirrored metadata locally, stages generated thumbnail derivatives from `../moon-mission-data`, and serves hosted media through the same public asset bucket when mirrored under the site asset prefix. See [docs/operations/artemis2-media-assets.md](operations/artemis2-media-assets.md).
 - Timeline/media playback behavior is specified in [Timeline and Media Playback Spec](design/specs/timeline-media-playback-spec.md).

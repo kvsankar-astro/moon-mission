@@ -168,6 +168,7 @@ Example deep dive:
 ### Roadmaps and implementation plans
 
 - [Panel System V1 Implementation Plan](roadmap/panel-system-v1-implementation-plan.md)
+- [Dockview Panel Layout Integration Plan](roadmap/dockview-panel-layout-integration-plan.md)
 - [Artemis II Media Timeline Plan](roadmap/artemis2-media-timeline-plan.md)
 - [Main View Photo Mode Plan](roadmap/main-view-photo-mode-plan.md)
 - [Orbit-First Timeline Plan](roadmap/orbit-first-timeline-plan.md)
@@ -180,6 +181,7 @@ Example deep dive:
 - [Sky Render Demo](research/sky-render-demo.md)
 - [Orion Procedural Model Generation](research/orion-procedural-model-generation.md)
 - [Performance Functional Core Experiments](research/performance-functional-core-experiments.md)
+- [Panel Layout Library Evaluation](research/panel-layout-library-evaluation.md)
 - [Sun FoV reference pack](references/sun-fov/README.md)
 
 ## 6) Data Boundary Design
