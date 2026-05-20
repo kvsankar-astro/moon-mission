@@ -1005,6 +1005,7 @@
                     <div class="header-pill-group" role="group" aria-label="Follow target">
                         <span class="header-pill-group__label">Follow</span>
                         <div class="header-pill-segment" role="group" aria-label="Follow target options">
+                            <button id="follow-pill-none" type="button" class="header-pill-segment__btn" aria-pressed="true" title="No follow (Manual → Manual)">None</button>
                             <button id="follow-pill-earth" type="button" class="header-pill-segment__btn" aria-pressed="false" title="Follow Earth (Manual → Earth)">Earth</button>
                             <button id="follow-pill-moon" type="button" class="header-pill-segment__btn" aria-pressed="false" title="Follow Moon (Manual → Moon)">Moon</button>
                             <button id="follow-pill-craft" type="button" class="header-pill-segment__btn" aria-pressed="false" title="Follow Craft (Manual → Craft)">Craft</button>
@@ -1035,8 +1036,8 @@
                     <div class="header-pill-group header-pill-group--choice" role="group" aria-label="Dimension mode">
                         <span class="header-pill-group__label">Dimension</span>
                         <div class="header-pill-segment" role="group" aria-label="Dimension options">
-                            <button id="dimension-pill-2d" type="button" class="header-pill-segment__btn" aria-pressed="false" title="2D view">2D</button>
                             <button id="dimension-pill-3d" type="button" class="header-pill-segment__btn" aria-pressed="true" title="3D view">3D</button>
+                            <button id="dimension-pill-2d" type="button" class="header-pill-segment__btn" aria-pressed="false" title="2D view">2D</button>
                         </div>
                     </div>
                 </div>
@@ -1930,12 +1931,12 @@
                             <legend class="settings-section__title">Dimension</legend>
                             <div class="camera-pill-group camera-pill-group--dimension" role="radiogroup" aria-label="Dimension">
                                 <label class="camera-pill">
-                                    <input type="radio" name="dimension" value="2D" id="dimension-2D">
-                                    <span>2D</span>
-                                </label>
-                                <label class="camera-pill">
                                     <input type="radio" name="dimension" value="3D" id="dimension-3D" checked="checked">
                                     <span>3D</span>
+                                </label>
+                                <label class="camera-pill">
+                                    <input type="radio" name="dimension" value="2D" id="dimension-2D">
+                                    <span>2D</span>
                                 </label>
                             </div>
                         </fieldset>

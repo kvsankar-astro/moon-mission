@@ -22,8 +22,8 @@ export const DEFAULT_ORIGIN_PILL_PAIRS = [
 ];
 
 export const DEFAULT_DIMENSION_PILL_PAIRS = [
-    ["dimension-pill-2d", "dimension-2D", "2D"],
     ["dimension-pill-3d", "dimension-3D", "3D"],
+    ["dimension-pill-2d", "dimension-2D", "2D"],
 ];
 
 export const DEFAULT_MOON_PROFILE_PILL_PAIRS = [

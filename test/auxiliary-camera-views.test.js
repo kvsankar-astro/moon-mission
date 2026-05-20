@@ -529,6 +529,18 @@ describe("Frame and Shoot FoV bounds", () => {
         expect(manager.clampAutoFovDegrees(panelState, 12)).toBe(12);
     });
 
+    it("allows Moon target panels to auto-fit below the generic target-panel floor", () => {
+        const manager = Object.create(AuxiliaryCameraViewsManager.prototype);
+        const panelState = {
+            mode: "target",
+            targetKey: "moon",
+            camera: { fov: 45 },
+        };
+
+        expect(manager.clampAutoFovDegrees(panelState, 0.5)).toBe(1.5);
+        expect(manager.clampAutoFovDegrees(panelState, 1.6)).toBe(1.6);
+    });
+
     it("lets Frame and Shoot Auto FoV use a practical wide-angle range", () => {
         const manager = Object.create(AuxiliaryCameraViewsManager.prototype);
         const panelState = {
@@ -1372,6 +1384,7 @@ describe("Frame and Shoot constellation line rendering", () => {
         manager.persistPanelState();
 
         const persisted = JSON.parse(storage.get("moon-mission:aux-camera-panels:v1"));
+        expect(persisted.composer).not.toHaveProperty("autoFovEnabled");
         expect(persisted.composer.composerExposureEv).toBe(1.5);
         expect(persisted.composer.composerAutoExposureEnabled).toBe(false);
     });

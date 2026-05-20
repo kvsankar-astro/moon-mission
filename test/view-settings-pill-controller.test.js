@@ -312,8 +312,8 @@ function createHarness(options = {}) {
             ["origin-pill-relative", "origin-relative", "relative"],
         ],
         dimensionPillPairs: [
-            ["dimension-pill-2d", "dimension-2D", "2D"],
             ["dimension-pill-3d", "dimension-3D", "3D"],
+            ["dimension-pill-2d", "dimension-2D", "2D"],
         ],
         moonProfilePillPairs: [
             ["moon-profile-pill-fast", "fast"],

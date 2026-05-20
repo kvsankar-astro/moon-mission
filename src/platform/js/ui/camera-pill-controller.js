@@ -1,4 +1,5 @@
 const DEFAULT_FOLLOW_PILL_PAIRS = [
+    ["follow-pill-none", "manual"],
     ["follow-pill-earth", "earth"],
     ["follow-pill-moon", "moon"],
     ["follow-pill-craft", "spacecraft"],

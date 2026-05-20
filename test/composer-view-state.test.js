@@ -130,4 +130,21 @@ describe("composer view state", () => {
         expect(result.state.lockTarget).toBe("moon");
         expect(result.state.autoFovEnabled).toBe(true);
     });
+
+    it("ignores persisted Auto FoV so page loads can start from the current default", () => {
+        const result = resolveComposerViewIntent({
+            lockTarget: "moon",
+            autoFovEnabled: true,
+        }, {
+            type: "persisted",
+            persisted: {
+                autoFovEnabled: false,
+                fov: 12.5,
+            },
+        });
+
+        expect(result.state.lockTarget).toBe("moon");
+        expect(result.state.autoFovEnabled).toBe(true);
+        expect(result.state.manualFovDegrees).toBe(12.5);
+    });
 });

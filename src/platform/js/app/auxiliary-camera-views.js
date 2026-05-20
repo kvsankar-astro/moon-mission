@@ -157,6 +157,7 @@ const AUTO_FOV_MARGIN_SCALE = 1.03;
 const AUTO_FOV_MIN_DEGREES = 0.1;
 const AUTO_FOV_MAX_DEGREES = 179;
 const TARGET_AUTO_FOV_MIN_DEGREES = 3;
+const MOON_TARGET_AUTO_FOV_MIN_DEGREES = 1.5;
 const TARGET_AUTO_FOV_MAX_DEGREES = 70;
 const COMPOSER_AUTO_FOV_MIN_DEGREES = AUTO_FOV_MIN_DEGREES;
 const COMPOSER_AUTO_FOV_MAX_DEGREES = 120;
@@ -1190,7 +1191,6 @@ class AuxiliaryCameraViewsManager {
             payload[panelState.id] = {
                 fovPreferenceVersion: AUX_FOV_PREFERENCE_VERSION,
                 fov: Number.isFinite(persistedFov) ? Number(persistedFov) : null,
-                autoFovEnabled: panelState.autoFovEnabled === true,
                 composerControlsCollapsed: panelState.composerControlsCollapsed === true,
                 composerControlsCollapseVersion: panelState.mode === "composer"
                     ? COMPOSER_CONTROLS_COLLAPSE_STATE_VERSION
@@ -5203,9 +5203,6 @@ class AuxiliaryCameraViewsManager {
         if (persisted && typeof persisted === "object") {
             if (panelState.mode !== "composer") {
                 if (hasCurrentAuxFovPreferenceVersion(persisted)) {
-                    if (typeof persisted.autoFovEnabled === "boolean") {
-                        panelState.autoFovEnabled = persisted.autoFovEnabled;
-                    }
                     const persistedFov = Number(persisted.fov);
                     if (Number.isFinite(persistedFov)) {
                         const boundedFov = this.THREE.MathUtils.clamp(
@@ -5239,7 +5236,6 @@ class AuxiliaryCameraViewsManager {
                     type: "persisted",
                     persisted,
                 });
-                panelState.autoFovEnabled = result.state.autoFovEnabled === true;
                 if (Number.isFinite(result.state.manualFovDegrees)) {
                     const boundedFov = this.THREE.MathUtils.clamp(
                         result.state.manualFovDegrees,
@@ -8902,8 +8898,11 @@ class AuxiliaryCameraViewsManager {
 
     clampAutoFovDegrees(panelState, requestedDegrees) {
         const isComposer = panelState?.mode === "composer";
+        const isMoonTargetPanel = panelState?.targetKey === "moon" && panelState?.mode !== "composer";
         return clampFovDegrees(requestedDegrees, {
-            minDegrees: isComposer ? COMPOSER_AUTO_FOV_MIN_DEGREES : TARGET_AUTO_FOV_MIN_DEGREES,
+            minDegrees: isComposer
+                ? COMPOSER_AUTO_FOV_MIN_DEGREES
+                : (isMoonTargetPanel ? MOON_TARGET_AUTO_FOV_MIN_DEGREES : TARGET_AUTO_FOV_MIN_DEGREES),
             maxDegrees: isComposer ? COMPOSER_AUTO_FOV_MAX_DEGREES : TARGET_AUTO_FOV_MAX_DEGREES,
             fallbackDegrees: panelState?.camera?.fov || panelState?.orbitZoomFovDegrees || 45,
         });

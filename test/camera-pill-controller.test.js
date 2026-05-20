@@ -59,6 +59,7 @@ function createHarness() {
     const documentListeners = new Map();
     const positionSelect = createElement("camera-position", { value: "manual" });
     const lookSelect = createElement("camera-look", { value: "earth" });
+    const followNone = createElement("follow-pill-none");
     const followEarth = createElement("follow-pill-earth");
     const followMoon = createElement("follow-pill-moon");
     const followCraft = createElement("follow-pill-craft");
@@ -93,6 +94,7 @@ function createHarness() {
     const allElements = [
         positionSelect,
         lookSelect,
+        followNone,
         followEarth,
         followMoon,
         followCraft,
@@ -154,7 +156,9 @@ function createHarness() {
         documentRef,
         followCraft,
         followEarth,
+        followNone,
         lookEarth,
+        lookManual,
         lookMoon,
         lookSelect,
         positionCraft,
@@ -207,6 +211,30 @@ describe("createCameraPillController", function () {
             "manual",
             "manual",
             { preserveManualRelease: true },
+        );
+    });
+
+    it("activates the none follow pill for manual look", function () {
+        const harness = createHarness();
+
+        harness.lookSelect.value = "manual";
+        harness.lookEarth.checked = false;
+        harness.lookManual.checked = true;
+        harness.controller.bind();
+
+        expect(harness.followNone.classList.contains("is-active")).toBe(true);
+        expect(harness.followNone["aria-pressed"]).toBe("true");
+
+        harness.lookSelect.value = "earth";
+        harness.lookManual.checked = false;
+        harness.lookEarth.checked = true;
+        harness.documentRef?.dispatchEvent?.({ type: "camera-from-to-ui-updated" });
+        harness.followNone.dispatchEvent({ type: "click" });
+
+        expect(harness.controlBackend.commitCameraPair).toHaveBeenCalledWith(
+            "manual",
+            "manual",
+            { preserveManualRelease: false },
         );
     });
 

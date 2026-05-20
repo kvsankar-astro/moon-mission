@@ -26,6 +26,81 @@ function createDocumentStub() {
     };
 }
 
+function createFovControlDocumentStub() {
+    const elementsById = new Map();
+
+    class FakeElement {
+        constructor(tagName = "div") {
+            this.tagName = tagName;
+            this.children = [];
+            this.attributes = {};
+            this.textContent = "";
+            this.value = "";
+            this.disabled = false;
+            this.hidden = false;
+            this.type = "";
+            this.classNames = new Set();
+            this.classList = {
+                add: (...names) => {
+                    names.forEach((name) => this.classNames.add(name));
+                },
+                toggle: (name, enabled) => {
+                    if (enabled) {
+                        this.classNames.add(name);
+                        return true;
+                    }
+                    this.classNames.delete(name);
+                    return false;
+                },
+            };
+        }
+
+        set id(value) {
+            this._id = String(value);
+            elementsById.set(this._id, this);
+        }
+
+        get id() {
+            return this._id || "";
+        }
+
+        appendChild(child) {
+            this.children.push(child);
+            return child;
+        }
+
+        replaceChildren(...children) {
+            this.children = children;
+        }
+
+        setAttribute(name, value) {
+            this.attributes[name] = String(value);
+        }
+
+        getAttribute(name) {
+            return this.attributes[name] ?? null;
+        }
+    }
+
+    const container = new FakeElement("div");
+    container.id = "desktop-main-fov";
+
+    return {
+        createElement(tagName) {
+            return new FakeElement(tagName);
+        },
+        getElementById(id) {
+            return elementsById.get(id) || null;
+        },
+        querySelector() {
+            return null;
+        },
+        querySelectorAll() {
+            return [];
+        },
+    };
+}
+
 describe("createCameraActions", () => {
     const originalDocument = globalThis.document;
 
@@ -380,6 +455,92 @@ describe("createCameraActions", () => {
 
         expect(controller.setFov).toHaveBeenCalledWith(0.4);
         expect(camera.fov).toBe(0.4);
+    });
+
+    it("starts semantic desktop views with Auto FoV enabled", () => {
+        globalThis.document = createFovControlDocumentStub();
+
+        let positionMode = "spacecraft";
+        let lookMode = "moon";
+
+        const camera = {
+            position: new Vector3(0, 0, 0),
+            fov: 50,
+            aspect: 1,
+            up: new Vector3(0, 0, 1),
+            lookAt: vi.fn(),
+            updateProjectionMatrix: vi.fn(),
+        };
+
+        const controller = {
+            camera,
+            controls: {
+                target: new Vector3(),
+                update: vi.fn(),
+                addEventListener: vi.fn(),
+                dispatchEvent: vi.fn(),
+            },
+            _freeFlyActive: false,
+            _mountWorld: new Vector3(),
+            _lookWorld: new Vector3(),
+            mountOffset: new Vector3(),
+            updateFromTo: vi.fn(),
+            setFromToModes(nextPositionMode, nextLookMode) {
+                this.positionMode = nextPositionMode;
+                this.lookMode = nextLookMode;
+            },
+            _resolveTargetWorld(mode, out = new Vector3()) {
+                if (mode === "moon") return out.set(100, 0, 0);
+                if (mode === "spacecraft") return out.set(0, 0, 0);
+                return null;
+            },
+            setMountOffset(offset) {
+                this.mountOffset.set(offset.x ?? 0, offset.y ?? 0, offset.z ?? 0);
+            },
+            setMountTargetOffset: vi.fn(),
+            setFov: vi.fn((fov) => {
+                camera.fov = fov;
+            }),
+        };
+
+        const scene = {
+            initialized3D: true,
+            camera,
+            cameraController: controller,
+            moonContainer: createVectorTarget(100, 0, 0),
+            craft: createVectorTarget(0, 0, 0),
+            moon: {
+                geometry: {
+                    boundingSphere: { radius: 10 },
+                },
+            },
+        };
+
+        const actions = createCameraActions({
+            animationScenes: { geo: scene },
+            getConfig: () => "geo",
+            readCameraPositionMode: () => positionMode,
+            readCameraLookMode: () => lookMode,
+            applyCameraFromTo: (next) => {
+                if (typeof next?.positionMode === "string") {
+                    positionMode = next.positionMode;
+                }
+                if (typeof next?.lookMode === "string") {
+                    lookMode = next.lookMode;
+                }
+            },
+            readPlaneSelection: () => "default",
+            setPlaneSelection: vi.fn(),
+            handlePlaneChange: vi.fn(),
+            render: vi.fn(),
+            getViewSky: () => false,
+            getViewConstellationLines: () => false,
+        });
+
+        actions.changeCameraFromTo();
+
+        expect(controller.setFov).toHaveBeenCalledWith(expect.closeTo(11.8239, 4));
+        expect(camera.fov).toBeCloseTo(11.8239, 4);
     });
 
     it("maps the desktop zoom slider back to the requested FoV", () => {

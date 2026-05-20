@@ -36,7 +36,7 @@ export function createCameraActions({
     let lastAppliedPositionMode = "manual";
     let lastAppliedLookMode = "manual";
     let lastAppliedConfig = null;
-    let desktopMainViewAutoFovEnabled = false;
+    let desktopMainViewAutoFovEnabled = true;
     let lastSyncedDesktopMainFov = 50;
     const desktopMainFovControl = mountMissionFovControl(
         typeof document !== "undefined" ? document.getElementById("desktop-main-fov") : null,
@@ -69,6 +69,7 @@ export function createCameraActions({
         moon: { hidden: null },
     };
     let autoAdjusting = false;
+    setDesktopMainFovAutoEnabled(true);
 
     function resolveManualLookTarget(scene) {
         const target = scene?.defaultLookTarget;
@@ -467,9 +468,6 @@ export function createCameraActions({
             container.hidden = !shouldShow;
         }
         if (!shouldShow) {
-            if (desktopMainViewAutoFovEnabled) {
-                setDesktopMainFovAutoEnabled(false);
-            }
             if (autoButton) {
                 autoButton.disabled = true;
             }

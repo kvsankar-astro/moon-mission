@@ -98,13 +98,10 @@ function lockTargetComposerViewState(currentState = {}, {
 function persistedComposerViewState(currentState = {}, persisted = {}) {
     const current = normalizeComposerViewState(currentState);
     const lockTarget = normalizeComposerLockTarget(current.lockTarget);
-    const persistedAutoFov = typeof persisted?.autoFovEnabled === "boolean"
-        ? persisted.autoFovEnabled
-        : current.autoFovEnabled;
     return {
         ...current,
         lockTarget,
-        autoFovEnabled: lockTarget === "none" ? false : persistedAutoFov === true,
+        autoFovEnabled: lockTarget === "none" ? false : current.autoFovEnabled === true,
         manualFovDegrees: toPositiveFiniteNumber(persisted?.fov),
     };
 }
