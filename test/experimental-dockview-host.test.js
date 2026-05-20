@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
+    applyDefaultDockviewWorkspaceLayout,
     createDockviewHeaderActionsRenderer,
     createDockviewTabContextMenuItems,
     calculateDefaultDockviewWorkspaceSizes,
@@ -49,7 +50,7 @@ describe("experimental Dockview host helpers", () => {
             },
         };
 
-        expect(getDockviewSpikeStorageKey()).toBe("moon-mission:dockview-spike:v9:artemis2");
+        expect(getDockviewSpikeStorageKey()).toBe("moon-mission:dockview-spike:v10:artemis2");
     });
 
     it("uses a separate shell geometry storage key", () => {
@@ -59,7 +60,7 @@ describe("experimental Dockview host helpers", () => {
             },
         };
 
-        expect(getDockviewSpikeShellStorageKey()).toBe("moon-mission:dockview-spike:v9:artemis2:shell");
+        expect(getDockviewSpikeShellStorageKey()).toBe("moon-mission:dockview-spike:v10:artemis2:shell");
     });
 
     it("clamps shell geometry inside the viewport", () => {
@@ -102,11 +103,59 @@ describe("experimental Dockview host helpers", () => {
         })).toBe("/astro/lunar-missions/popout.html");
     });
 
-    it("keeps the default main scene wider than tall on desktop layouts", () => {
-        const sizes = calculateDefaultDockviewWorkspaceSizes(1440, 760);
+    it("matches the Artemis II four-column workspace proportions on wide desktop layouts", () => {
+        const sizes = calculateDefaultDockviewWorkspaceSizes(1910, 744);
 
-        expect(sizes.main).toBeGreaterThan(760);
-        expect(sizes.auxRail).toBeLessThan(200);
+        expect(sizes.leftRail).toBeGreaterThan(460);
+        expect(sizes.main).toBeGreaterThanOrEqual(540);
+        expect(sizes.frameShoot).toBeGreaterThan(620);
+        expect(sizes.auxRail).toBeGreaterThanOrEqual(210);
+    });
+
+    it("places Mission Media below Frame and Shoot in the default workspace", () => {
+        const panels = new Set([
+            "mission:main-view",
+            "workflow:background-media",
+            "workflow:background-transcript",
+            "workflow:media-browser",
+            "aux:earth-rise-composer",
+            "aux:moon",
+            "aux:earth",
+            "aux:earth-origin-orbit-xy",
+        ]);
+        let appliedLayout = null;
+        const layoutHost = {
+            api: {
+                width: 1910,
+                height: 744,
+                getPanel: (id) => (panels.has(id) ? { id } : null),
+                toJSON: () => ({ panels: {} }),
+                fromJSON: (layout) => {
+                    appliedLayout = layout;
+                },
+                layout() {},
+            },
+            focusPanel() {},
+            saveLayout() {},
+        };
+
+        expect(applyDefaultDockviewWorkspaceLayout(layoutHost)).toBe(true);
+
+        const [leftRail, mainView, frameAndMedia, auxRail] = appliedLayout.grid.root.data;
+        expect(leftRail.data.map((leaf) => leaf.data.activeView)).toEqual([
+            "workflow:background-media",
+            "workflow:background-transcript",
+        ]);
+        expect(mainView.data.activeView).toBe("mission:main-view");
+        expect(frameAndMedia.data.map((leaf) => leaf.data.activeView)).toEqual([
+            "aux:earth-rise-composer",
+            "workflow:media-browser",
+        ]);
+        expect(auxRail.data.map((leaf) => leaf.data.activeView)).toEqual([
+            "aux:moon",
+            "aux:earth",
+            "aux:earth-origin-orbit-xy",
+        ]);
     });
 
     it("renders compact Dockview header actions for maximize, float, and popout", () => {

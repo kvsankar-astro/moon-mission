@@ -15,7 +15,7 @@ import { resolveMissionKeyFromWindow } from "./panel-layout-store.js";
 
 const DOCKVIEW_SPIKE_PARAM = "dockPanels";
 const LEGACY_PANELS_PARAM = "legacyPanels";
-const DOCKVIEW_SPIKE_STORAGE_PREFIX = "moon-mission:dockview-spike:v9";
+const DOCKVIEW_SPIKE_STORAGE_PREFIX = "moon-mission:dockview-spike:v10";
 const DOCKVIEW_SPIKE_SHELL_STORAGE_SUFFIX = ":shell";
 const DOCKVIEW_SPIKE_SHELL_MIN_WIDTH = 360;
 const DOCKVIEW_SPIKE_SHELL_MIN_HEIGHT = 260;
@@ -629,14 +629,11 @@ function shrinkWorkspaceRailSizes(sizes, targetMain, width) {
 
 function calculateDefaultDockviewWorkspaceSizes(width, height) {
     const initialSizes = {
-        leftRail: clampWorkspaceSize(width * 0.16, 220, 320),
-        frameShoot: clampWorkspaceSize(width * 0.17, 240, 360),
-        auxRail: clampWorkspaceSize(width * 0.10, 150, 230),
+        leftRail: clampWorkspaceSize(width * 0.255, 320, 500),
+        frameShoot: clampWorkspaceSize(width * 0.34, 360, 680),
+        auxRail: clampWorkspaceSize(width * 0.113, 170, 240),
     };
-    const targetMain = Math.min(
-        width - 420,
-        Math.max(520, Math.round(height * 1.05)),
-    );
+    const targetMain = Math.min(width - 420, 560);
     const railSizes = shrinkWorkspaceRailSizes(initialSizes, targetMain, width);
     return {
         ...railSizes,
@@ -800,9 +797,10 @@ function applyDefaultDockviewWorkspaceLayout(layoutHost) {
         auxRail,
         main,
     } = calculateDefaultDockviewWorkspaceSizes(width, height);
-    const broadcastHeight = clampWorkspaceSize((leftRail * 9 / 16) + 48, 180, Math.max(220, Math.round(height * 0.3)));
-    const transcriptHeight = clampWorkspaceSize(Math.round(height * 0.22), 150, 220);
-    const mediaHeight = Math.max(240, height - broadcastHeight - transcriptHeight);
+    const broadcastHeight = clampWorkspaceSize((leftRail * 9 / 16) + 48, 220, Math.max(260, Math.round(height * 0.48)));
+    const transcriptHeight = Math.max(220, height - broadcastHeight);
+    const frameShootHeight = clampWorkspaceSize(Math.round(height * 0.51), 260, Math.max(280, height - 260));
+    const mediaHeight = Math.max(240, height - frameShootHeight);
     const auxThirdHeight = Math.max(160, Math.round(height / 3));
 
     api.fromJSON({
@@ -831,15 +829,6 @@ function applyDefaultDockviewWorkspaceLayout(layoutHost) {
                                 },
                                 size: transcriptHeight,
                             },
-                            {
-                                type: "leaf",
-                                data: {
-                                    views: ["workflow:media-browser"],
-                                    activeView: "workflow:media-browser",
-                                    id: "left-media",
-                                },
-                                size: mediaHeight,
-                            },
                         ],
                         size: leftRail,
                     },
@@ -853,12 +842,27 @@ function applyDefaultDockviewWorkspaceLayout(layoutHost) {
                         size: main,
                     },
                     {
-                        type: "leaf",
-                        data: {
-                            views: ["aux:earth-rise-composer"],
-                            activeView: "aux:earth-rise-composer",
-                            id: "right-frame-shoot",
-                        },
+                        type: "branch",
+                        data: [
+                            {
+                                type: "leaf",
+                                data: {
+                                    views: ["aux:earth-rise-composer"],
+                                    activeView: "aux:earth-rise-composer",
+                                    id: "right-frame-shoot",
+                                },
+                                size: frameShootHeight,
+                            },
+                            {
+                                type: "leaf",
+                                data: {
+                                    views: ["workflow:media-browser"],
+                                    activeView: "workflow:media-browser",
+                                    id: "right-media",
+                                },
+                                size: mediaHeight,
+                            },
+                        ],
                         size: frameShoot,
                     },
                     {
@@ -1483,6 +1487,7 @@ export {
     DEFAULT_DOCKVIEW_SPIKE_PANELS,
     DEFAULT_OPEN_DOCKVIEW_PANEL_IDS,
     MAIN_VIEW_PANEL_ID,
+    applyDefaultDockviewWorkspaceLayout,
     applyShellRect,
     calculateDefaultDockviewWorkspaceSizes,
     clampShellRect,
