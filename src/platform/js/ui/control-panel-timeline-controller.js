@@ -52,6 +52,10 @@ function createControlPanelTimelineController(deps = {}) {
         return documentRef?.getElementById?.("timeline-media-toggle") || null;
     }
 
+    function isDockviewPanelsEnabled() {
+        return documentRef?.body?.classList?.contains?.("dockview-panels-enabled") === true;
+    }
+
     function getTimelineMarkers() {
         return documentRef?.getElementById?.("timeline-markers") || null;
     }
@@ -155,7 +159,7 @@ function createControlPanelTimelineController(deps = {}) {
     function setControlPanelCollapsedState(collapsed) {
         const panel = getControlPanel();
         if (!panel) return;
-        const nextCollapsed = !!collapsed;
+        const nextCollapsed = isDockviewPanelsEnabled() ? false : !!collapsed;
         if (panel.classList?.contains?.("control-panel--collapsed") === nextCollapsed) return;
         panel.classList?.toggle?.("control-panel--collapsed", nextCollapsed);
         requestAnimationFrameImpl(() => syncControlPanelInfoOffset(panel));

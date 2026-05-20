@@ -1944,74 +1944,75 @@
                 </div>
             </div> <!-- settings panel -->
     
-            <div id="control-panel" class="control-panel">
-                <div id="animation-control-panel">
-                    <div class="vspace"></div>
-    
-                    <div id="animationbuttons" class="swiper swiper1">
-                        <div class="swiper-wrapper">
-                            <div class="swiper-slide">
-                                <div class="controls-cluster controls-cluster--transport" aria-label="Transport controls">
-                                    <div class="controls-subgroup controls-subgroup--step" aria-label="Timeline stepping">
-                                        <button id="fastbackward" type="button" class="button button--icon" title="Large backward timeline step" aria-label="Large backward timeline step">&laquo;</button>
-                                        <button id="backward" type="button" class="button button--icon" title="Small backward timeline step" aria-label="Small backward timeline step">&lsaquo;</button>
-                                        <button id="forward" type="button" class="button button--icon" title="Small forward timeline step" aria-label="Small forward timeline step">&rsaquo;</button>
-                                        <button id="fastforward" type="button" class="button button--icon" title="Large forward timeline step" aria-label="Large forward timeline step">&raquo;</button>
-                                    </div>
-                                    <div class="controls-subgroup controls-subgroup--playback" aria-label="Playback">
-                                        <button id="animate" type="button" class="button button--primary" title="Play or pause">Play</button>
-                                        <button id="missionnow" type="button" class="button button--now" title="Jump to current time" aria-label="Jump to current time">Now</button>
-                                    </div>
-                                </div>
-                            </div>
+        </div>
 
-                            <div class="swiper-slide">
-                                <div class="controls-cluster controls-cluster--speed" aria-label="Speed controls">
-                                    <button id="slower" type="button" class="button button--icon" title="Slower" aria-label="Slower">−</button>
-                                    <button id="realtime" type="button" class="button button--realtime" title="Set speed to realtime (1 sec/sec)" aria-label="Current speed. Click to set realtime">1 sec/sec</button>
-                                    <button id="faster" type="button" class="button button--icon" title="Faster" aria-label="Faster">+</button>
-                                </div>
-                            </div>
+        <div id="control-panel" class="control-panel">
+            <div id="animation-control-panel">
+                <div class="vspace"></div>
 
-                            <div class="swiper-slide">
-                                <div class="controls-cluster controls-cluster--modes" aria-label="Mission modes">
-                                    <button id="landingbutton" type="button" class="button" title="Landing">Landing</button>
-                                    <button id="joyridebutton" type="button" class="button" title="Joy Ride">Joy Ride</button>
+                <div id="animationbuttons" class="swiper swiper1">
+                    <div class="swiper-wrapper">
+                        <div class="swiper-slide">
+                            <div class="controls-cluster controls-cluster--transport" aria-label="Transport controls">
+                                <div class="controls-subgroup controls-subgroup--step" aria-label="Timeline stepping">
+                                    <button id="fastbackward" type="button" class="button button--icon" title="Large backward timeline step" aria-label="Large backward timeline step">&laquo;</button>
+                                    <button id="backward" type="button" class="button button--icon" title="Small backward timeline step" aria-label="Small backward timeline step">&lsaquo;</button>
+                                    <button id="forward" type="button" class="button button--icon" title="Small forward timeline step" aria-label="Small forward timeline step">&rsaquo;</button>
+                                    <button id="fastforward" type="button" class="button button--icon" title="Large forward timeline step" aria-label="Large forward timeline step">&raquo;</button>
                                 </div>
-                            </div>
-
-                            <div class="swiper-slide">
-                                <div class="controls-cluster controls-cluster--help" aria-label="Help">
-                                    <button id="info-button" type="button" class="button" title="Telemetry panel">Info</button>
-                                    <button id="shortcut-help" type="button" class="button button--icon" title="Keyboard shortcuts" aria-label="Keyboard shortcuts">?</button>
+                                <div class="controls-subgroup controls-subgroup--playback" aria-label="Playback">
+                                    <button id="animate" type="button" class="button button--primary" title="Play or pause">Play</button>
+                                    <button id="missionnow" type="button" class="button button--now" title="Jump to current time" aria-label="Jump to current time">Now</button>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="vspace"></div>
-                    
-                    <!-- <span class="config-label config-first-label">Timeline:</span> -->
-    
-                    <!-- <span id="burnbuttons"></span>     -->
 
-                    <div id="shortcut-panel" class="shortcut-panel shortcut-panel--hidden" aria-live="polite">
-                        <div class="shortcut-panel__title">Keyboard</div>
-                        <div class="shortcut-panel__grid">
-                            <div><kbd>Space</kbd> / <kbd>K</kbd> Play/Pause</div>
-                            <div><kbd>J</kbd> / <kbd>L</kbd> Large Step</div>
-                            <div><kbd>←</kbd> / <kbd>→</kbd> Small Step</div>
-                            <div><kbd>Shift</kbd>+<kbd>←</kbd> / <kbd>→</kbd> Large Step</div>
-                            <div><kbd>-</kbd> / <kbd>+</kbd> Slower/Faster</div>
-                            <div><kbd>R</kbd> Realtime</div>
-                            <div><kbd>N</kbd> Jump to Now</div>
-                            <div><kbd>?</kbd> Toggle Help</div>
+                        <div class="swiper-slide">
+                            <div class="controls-cluster controls-cluster--speed" aria-label="Speed controls">
+                                <button id="slower" type="button" class="button button--icon" title="Slower" aria-label="Slower">−</button>
+                                <button id="realtime" type="button" class="button button--realtime" title="Set speed to realtime (1 sec/sec)" aria-label="Current speed. Click to set realtime">1 sec/sec</button>
+                                <button id="faster" type="button" class="button button--icon" title="Faster" aria-label="Faster">+</button>
+                            </div>
+                        </div>
+
+                        <div class="swiper-slide">
+                            <div class="controls-cluster controls-cluster--modes" aria-label="Mission modes">
+                                <button id="landingbutton" type="button" class="button" title="Landing">Landing</button>
+                                <button id="joyridebutton" type="button" class="button" title="Joy Ride">Joy Ride</button>
+                            </div>
+                        </div>
+
+                        <div class="swiper-slide">
+                            <div class="controls-cluster controls-cluster--help" aria-label="Help">
+                                <button id="info-button" type="button" class="button" title="Telemetry panel">Info</button>
+                                <button id="shortcut-help" type="button" class="button button--icon" title="Keyboard shortcuts" aria-label="Keyboard shortcuts">?</button>
+                            </div>
                         </div>
                     </div>
-    
-                </div> <!-- First row buttons -->
-        
-            </div> <!-- control panel -->
-        </div>        
+                </div>
+                <div class="vspace"></div>
+
+                <!-- <span class="config-label config-first-label">Timeline:</span> -->
+
+                <!-- <span id="burnbuttons"></span>     -->
+
+                <div id="shortcut-panel" class="shortcut-panel shortcut-panel--hidden" aria-live="polite">
+                    <div class="shortcut-panel__title">Keyboard</div>
+                    <div class="shortcut-panel__grid">
+                        <div><kbd>Space</kbd> / <kbd>K</kbd> Play/Pause</div>
+                        <div><kbd>J</kbd> / <kbd>L</kbd> Large Step</div>
+                        <div><kbd>←</kbd> / <kbd>→</kbd> Small Step</div>
+                        <div><kbd>Shift</kbd>+<kbd>←</kbd> / <kbd>→</kbd> Large Step</div>
+                        <div><kbd>-</kbd> / <kbd>+</kbd> Slower/Faster</div>
+                        <div><kbd>R</kbd> Realtime</div>
+                        <div><kbd>N</kbd> Jump to Now</div>
+                        <div><kbd>?</kbd> Toggle Help</div>
+                    </div>
+                </div>
+
+            </div> <!-- First row buttons -->
+
+        </div> <!-- control panel -->
 
         <div id="content-wrapper" class="content-wrapper flex-container">
         

@@ -3335,6 +3335,18 @@ body:has(#timeline-dock.timeline-dock--media-track-visible) #control-panel {
     display: none;
 }
 
+.dockview-panels-enabled #control-panel.control-panel--collapsed {
+    display: block;
+}
+
+.dockview-panels-enabled #control-panel.control-panel--collapsed #animation-control-panel {
+    display: flex;
+}
+
+.dockview-panels-enabled #control-panel {
+    z-index: 5001;
+}
+
 #animation-control-panel {
     display: flex;
     flex-direction: column;

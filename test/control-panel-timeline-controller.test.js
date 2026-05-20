@@ -83,6 +83,7 @@ function createElement({
 
 function createHarness({
     desktopTimeline = false,
+    dockviewPanelsEnabled = false,
     mediaPanelOpen = false,
     timelineValue = "2600",
     timelineDataset = {},
@@ -122,6 +123,9 @@ function createHarness({
     const panelActions = [];
 
     const documentRef = {
+        body: {
+            classList: createClassList(dockviewPanelsEnabled ? ["dockview-panels-enabled"] : []),
+        },
         documentElement: {
             style: {
                 setProperty(name, value) {
@@ -295,6 +299,16 @@ describe("createControlPanelTimelineController", () => {
 
         expect(harness.panel.classList.contains("control-panel--collapsed")).toBe(true);
         expect(harness.rootStyleValues.get("--control-panel-visual-height")).toBe("0px");
+    });
+
+    it("keeps the transport controls visible in Dockview mode", () => {
+        const harness = createHarness({ dockviewPanelsEnabled: true });
+
+        harness.controller.bind();
+        harness.controller.setControlPanelCollapsedState(true);
+
+        expect(harness.panel.classList.contains("control-panel--collapsed")).toBe(false);
+        expect(harness.rootStyleValues.get("--control-panel-visual-height")).toBe("60px");
     });
 
     it("toggles the timeline dock from the control button", () => {
