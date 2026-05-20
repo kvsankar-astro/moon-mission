@@ -1,7 +1,7 @@
 # Orbit-First Timeline Plan
 
 > Status: proposed direction, documented for tracking.
-> Last updated: 2026-05-08.
+> Last updated: 2026-05-20.
 
 ## Context
 
@@ -32,7 +32,8 @@ Media is supporting evidence. The orbit animation remains the center of gravity.
 
 - Do not make the main Artemis II runtime a media-first gallery.
 - Do not put hundreds of media items into the mission event carousel.
-- Do not let media playback become the authoritative mission clock.
+- Do not let media-first browsing replace the orbit animation as the primary
+  experience.
 - Do not hide or weaken the existing 2D/3D orbit controls.
 - Do not make Artemis II-specific UI assumptions that block other missions from
   using the improved timeline later.
@@ -58,6 +59,10 @@ Known product gaps:
 
 - The dock visually reads as a compact scrubber rather than a layered mission
   story.
+- The bottom controls still read as several nearby strips instead of one
+  coherent mission console.
+- The timeline dock should be content-aware: compact when Events and Media are
+  closed, taller only when extra lanes need space.
 - Event markers are sparse and useful, but phase duration is not visible.
 - Media markers are intended as a distinct layer, but they are not yet a strong
   visual affordance for geometry moments.
@@ -82,9 +87,11 @@ of the mission:
 - hover/focus cards explaining the geometry at a point in time
 - click-to-seek behavior that keeps the 3D animation authoritative
 
-When the user clicks a media pin, the app should seek the mission clock to that
-media time, open or focus the media preview, and keep the animation view
-oriented toward the relevant geometry when a preset is available.
+When the user clicks a reachable, foreground media pin, the app should seek the
+mission clock to that media time, open or focus the media preview, and keep the
+animation view oriented toward the relevant geometry when a preset is available.
+Background-role media markers are timeline context only and do not seek or open
+foreground Mission Media.
 
 ## Timeline Lanes
 
@@ -127,13 +134,298 @@ they want to see.
 The timeline strip should get first claim on horizontal space:
 
 - Render the timeline track full width so the mission range reaches the screen
-  edges.
+  available dock bounds.
 - Move the start/end range labels below the track, aligned left and right.
 - Keep endpoint labels as two-line date/time stamps.
 - Put the `Events`, `Media`, zoom, pan, and reset controls below the track in
   the same lower band.
 - Keep the current-time readout in the lower band so the track itself remains
   visually clean.
+
+### Bottom Console Implementation Spec
+
+The current bottom chrome behavior is specified in
+[`Timeline And Media Playback Spec`](../specs/timeline-media-playback-spec.md).
+Use that spec as the guardrail: preserve mission-clock authority, media sync,
+transport wiring, and Dockview bottom spacing while improving the visual
+console.
+
+Design references:
+
+- `artemistimeline.com`: dense mission chronology, activity bands, hover
+  feedback, and zoom/pan legibility.
+- IMG.LY mobile video timeline article: adaptive height, time-to-space
+  discipline, visible toolbar density, clear ruler scale, separated gestures,
+  larger hit areas than visuals, and viewport-local snapping.
+
+#### DOM Ownership
+
+Do not move behavioral ownership during the first implementation pass.
+
+- `#control-panel` remains outside `#header` and remains the transport owner.
+- `#timeline-dock` remains the timeline/event/media owner.
+- `control-panel-timeline-controller.js` remains responsible for:
+  - binding the Events and Media buttons
+  - syncing `--timeline-dock-height`
+  - syncing `--control-panel-visual-height`
+  - forcing transport visibility in Dockview desktop mode
+- `timeline-dock-controller.js` remains responsible for:
+  - range/current-time rendering
+  - click-to-seek
+  - playhead drag
+  - scrub-lane pan
+  - zoom/pan/reset controls
+  - event/media marker rendering and selection
+
+#### Visual Structure
+
+The bottom console has two physical pieces today, but they should read as one
+visual system:
+
+1. `#control-panel`: transport row.
+2. `#timeline-dock`: event row, timeline track, and status/action row.
+
+Shared visual rules:
+
+- Use one horizontal gutter variable for the event viewport and timeline track:
+  `--timeline-track-gutter`.
+- Use the same left/right visual bounds for:
+  - `.timeline-dock__event-carousel`
+  - `.timeline-dock__track-wrap`
+- Keep `#control-panel` horizontally aligned to the dock using
+  `--timeline-dock-offset`.
+- Keep the vertical gap between `#control-panel` and `#timeline-dock` at no
+  more than `4px` in desktop Dockview mode.
+- Keep `#control-panel` above overlapping timeline/Dockview surfaces whenever
+  those surfaces would otherwise cover transport hit targets. In Dockview mode,
+  transport must remain above the Dockview host and timeline dock.
+- No state may clip `#animation-control-panel`, `.timeline-dock__track-wrap`,
+  `#timeline-playhead`, or the timeline readout row.
+- Do not add a new wrapper or move transport controls until the existing
+  behavior is covered by tests.
+
+#### Layout States
+
+State names are CSS/behavioral concepts, not necessarily class names.
+
+| State | Trigger | Track height | Event row | Media lane | Required behavior |
+| --- | --- | ---: | --- | --- | --- |
+| `compact` | Events off, Media off | `52px` desktop; mobile shell keeps `.timeline-dock__track-wrap { height: 50px }` | hidden | hidden | Transport visible; click lane seeks; scrub lane pans; readouts visible. |
+| `events-expanded` | Events on, Media off | `52px` desktop | visible | hidden | Event carousel visible; event markers visible; carousel viewport aligned to track. |
+| `media-visible` | Media on, Events off | `76px` desktop | hidden | visible | Media rail and markers visible; Mission Media panel open/focused; taller lane restored. |
+| `events-and-media` | Events on, Media on | `76px` desktop | visible | visible | Event row and media lane visible; event and media markers remain distinct. |
+| `zoomed` | visual range narrower than full mission range | same as current media/event state | unchanged | unchanged | Overview visible; pan/reset controls active; mission clock unchanged. |
+
+Implementation rules:
+
+- `compact` is the default desktop state after bind.
+- Mission Media panel state owns media-visible. The timeline Media button and
+  Mission Media pill are synchronized launch surfaces for the same panel/lane
+  state.
+- The Events button owns the event-carousel state and must not open the Mission
+  Media panel.
+- State changes must call or schedule `syncTimelineDockHeight()`.
+- Dockview host bottom spacing must follow the latest `--timeline-dock-height`.
+- Mobile shell keeps its existing compact geometry:
+  `.timeline-dock__track-wrap { height: 50px }`,
+  `.timeline-dock__time-click-lane { top: 4px; height: 24px }`,
+  and `.timeline-dock__scrub-lane { height: 16px }`.
+
+#### Timeline Track Geometry
+
+Desktop target values:
+
+- `.timeline-dock__track-wrap`
+  - `52px` when `.timeline-dock--media-track-visible` is absent
+  - `76px` when `.timeline-dock--media-track-visible` is present
+- `.timeline-dock__time-click-lane`
+  - no-media: `top: 8px`, `height: 20px`
+  - media-visible: existing `top: 26px`, `height: 16px`
+- `#timeline-markers`
+  - no-media: `top: 8px`
+  - media-visible: existing `top: 23px`
+- `.timeline-dock__scrub-lane`
+  - remains bottom anchored
+  - remains the pan surface, not the seek surface
+- `.timeline-dock__playhead`
+  - remains visually thin
+  - keeps a larger hit area through its pseudo-element or pointer target
+
+The current visual marker can stay small. Pointer targets should be larger than
+the visual marker:
+
+- event marker visual width: current small tick/pill
+- event marker pointer width target: at least `18px`
+- media marker pointer width target: at least `18px`
+- playhead pointer width target: at least `18px`
+- zoom/pan/reset controls: at least `20px` desktop visual size; larger mobile
+  targets are handled by mobile rules.
+
+#### Media Reachability
+
+A media marker is `reachable` only when all of these are true:
+
+- the marker has a finite mission timestamp inside the active mission timeline
+  range
+- the marker can be mapped to a valid animation time for the current mode
+- the marker is not a background-role video marker
+- media is enabled for the current mode; compare mode keeps media disabled
+- the marker is not explicitly inactive or disabled by its media view model
+
+Reachability is independent of the current zoom window. A reachable marker can
+be outside the visible zoom window; it should not be clickable while outside
+the DOM-visible viewport, but it remains logically reachable when the user pans
+or resets the timeline to reveal it.
+
+For implementation, valid animation time should be resolved through the same
+timeline/media domain state that currently marks media markers inactive,
+out-of-range, pre-ephemeris, or post-ephemeris. Do not duplicate that range
+logic in CSS or event handlers.
+
+Opening/focusing behavior:
+
+- If Mission Media is closed and media is available, selecting a reachable media
+  marker opens the Mission Media panel and selects the item.
+- If Mission Media is already open, selecting a reachable media marker updates
+  selection/focus without recreating the panel.
+- If media is unavailable, compare-disabled, mobile-disabled, or the marker is
+  not reachable, the marker does not seek mission time and does not open
+  foreground Mission Media.
+- Background-role media markers are contextual only: render them as inactive,
+  do not select them, do not seek, and do not open foreground Mission Media.
+
+#### Ruler And Labels
+
+The ruler improvement is a separate implementation slice from the height and
+alignment work.
+
+Required behavior:
+
+- Keep exact start and end labels at the left/right edges.
+- Keep `#timeline-time-labels` as the interior label host.
+- Interior labels are derived from the current visual window, not the full
+  mission range when zoomed.
+- Labels must never overlap. If there is not enough room, show fewer labels.
+- Add subtle unlabeled subdivisions between major labels when there is enough
+  pixel space.
+- Use rounded-down elapsed/time labels for current playback position; do not
+  round up before a boundary has elapsed.
+
+Cadence rules:
+
+- Choose a target major tick spacing between `120px` and `220px`.
+- Choose the nearest friendly time step for the visible window:
+  `1s`, `5s`, `10s`, `30s`, `1m`, `5m`, `15m`, `30m`, `1h`, `3h`, `6h`,
+  `12h`, `1d`, `2d`, `7d`, `1mo`, `3mo`, `1y`.
+- Month and year ticks are calendar ticks, not fixed millisecond durations.
+  Align them to calendar month/year boundaries in the displayed time scale.
+- Use 4 minor subdivisions when the major step is small enough to make them
+  at least `18px` apart.
+- Hide minor subdivisions when they would create visual noise.
+
+#### Interaction Contract
+
+These surfaces must remain distinct:
+
+- `#timeline-time-click-lane`: click sets mission time.
+- `#timeline-playhead`: drag sets mission time continuously.
+- `#timeline-scrub-lane`: drag pans the visible timeline window.
+- `.timeline-dock__event-carousel`: horizontal drag scrolls event pills;
+  event button click seeks/selects the event.
+- `#timeline-media-markers`: media marker click selects media and seeks when
+  reachable.
+- Zoom/pan/reset buttons change visual range only; they do not change mission
+  clock time.
+
+If snapping is added later:
+
+- Snap only to visible event/media/phase points.
+- Never snap to an offscreen point.
+- Show a visible snap guide before committing the snapped position.
+
+#### Implementation Slices
+
+1. **Height and alignment slice.**
+   - Files: `src/platform/css/mission-layout.css`,
+     `src/platform/js/ui/control-panel-timeline-controller.js`,
+     `test/control-panel-timeline-controller.test.js`.
+   - Deliver:
+     - shared `--timeline-track-gutter`
+     - compact no-media track height
+     - media-visible restored height
+     - height variable resync tests
+
+2. **Unified console visual slice.**
+   - Files: `mission.html`, `src/platform/css/mission-layout.css`.
+   - Deliver:
+     - visual alignment of transport, timeline, toggles, readouts
+     - no behavior ownership changes
+     - no transport clipping in Dockview mode
+
+3. **Ruler slice.**
+   - Files: `src/platform/js/app/timeline-dock-controller.js`,
+     `src/platform/js/core/domain/timeline-time-labels.js`,
+     `test/timeline-dock-controller.test.js`.
+   - Deliver:
+     - friendly cadence
+     - optional minor subdivisions
+     - non-overlapping labels
+     - zoom-window-aware labels
+
+4. **Hit-target slice.**
+   - Files: `src/platform/css/mission-layout.css`,
+     `test/timeline-dock-controller.test.js`.
+   - Deliver:
+     - larger pointer targets for playhead/event/media markers
+     - unchanged visual density
+     - regression tests for click target behavior where possible
+
+5. **Verification slice.**
+   - Files: UI/screenshot tests under `test/`.
+   - Deliver screenshots or geometry assertions for:
+     - compact
+     - events-expanded
+     - media-visible
+     - events-and-media
+     - zoomed
+     - Dockview transport clickability
+
+Test matrix:
+
+| Context | Required checks |
+| --- | --- |
+| Desktop compact | `#control-panel` visible/clickable; no-media track is compact; timeline click seeks. |
+| Desktop Events | event carousel appears; event viewport bounds match track bounds; reduced-motion cue still respects preference. |
+| Desktop Media | media lane appears; track restores taller height; Mission Media panel and timeline Media button stay synchronized. |
+| Desktop Events + Media | both rows/layers visible; event and media marker hit targets do not steal playhead drag or scrub pan. |
+| Desktop zoomed | zoom/pan/reset update visual window only; labels are valid; mission time is unchanged. |
+| Dockview desktop | transport remains visible/clickable after Events, Media, and zoom state changes. |
+| Mobile shell | desktop `52px`/`76px` values do not apply; Media is disabled/closed if lane is unavailable. |
+| Compare mode | media remains disabled; Events, zoom, pan, and reset still work. |
+| Background-role media | marker can render as inactive context; click does not seek, select, or open foreground media. |
+| Empty data | no-event and no-media missions render without layout collapse or JS errors. |
+| Invalid range | zero-length or invalid timeline ranges do not create overlapping labels or NaN marker positions. |
+| Keyboard/ARIA | Events, Media, zoom, pan, and reset expose correct pressed/expanded/disabled state. |
+
+#### Acceptance Criteria
+
+- In compact desktop state, the timeline dock has no large empty band above the
+  scrub lane.
+- Opening Events shows event pills in a viewport that has the same left and
+  right bounds as the timeline track.
+- Opening Media restores the taller timeline track and shows the media lane.
+- Closing Media returns the dock to compact height if Events is also closed.
+- Mission Media panel opens/focuses from reachable media markers and stays
+  synchronized with the timeline Media button and any other Mission Media
+  launch surface.
+- Background-role media markers remain inert and cannot open foreground Mission
+  Media.
+- Transport controls remain visible and clickable in Dockview mode.
+- Click-to-seek, playhead drag, scrub-pan, event scroll, and media selection do
+  not interfere with each other.
+- Zoom/pan/reset alter the visual window without changing mission time.
+- Interior ruler labels remain readable and non-overlapping at full range and
+  zoomed ranges.
 
 ### Space-Saving Time Scale
 
@@ -252,12 +544,13 @@ timeline rewrite to land all at once.
 | --- | --- | --- | --- |
 | 0 | Marker plumbing and screenshots | Restores trust in the existing dock and gives us a baseline for later UI work. | Confirm media markers render, add focused tests, capture Artemis II dock screenshots. |
 | 1 | Curated geometry moments | Makes Earthset/Earthrise/flyby/eclipse discoverable immediately. | Add a small authored/derived geometry-moment model and render those points distinctly from generic events. |
-| 2 | Media as geometry annotations | Connects real photos to orbit geometry without making the UI media-first. | Make media pins secondary; clicking one seeks the mission time and opens/focuses media preview. |
+| 2 | Media as geometry annotations | Connects real photos to orbit geometry without making the UI media-first. | Make media pins secondary; clicking a reachable foreground pin seeks the mission time and opens/focuses media preview. |
 | 3 | Phase and data bands | Shows the broad mission arc and data provenance at a glance. | Render phase bands plus HORIZONS/generated/out-of-range regions. |
 | 4 | Timeline zoom and time scale | Makes dense moments inspectable without clutter. | Add adaptive time labels plus subtle zoom, pan, and reset controls. |
 | 5 | Timeline hover/focus card | Explains what the user is seeing before they click. | Add an app-level card led by geometry, with nearby event/media as supporting context. |
 | 6 | Timeline zoom polish | Makes dense mission moments inspectable with richer direct manipulation. | Add cursor-centered wheel zoom, drag pan polish, and preserve accessible seek semantics. |
 | 7 | Geometry-aware view presets | Lets a media capture become a doorway into the right 3D explanation. | Attach conservative view suggestions to geometry moments/media selections. |
+| 8 | Bottom console polish | Makes the transport/timeline area feel intentional and compact. | Apply the concrete bottom-console actions above while preserving current behavior. |
 
 The highest-value first build is therefore:
 
@@ -291,7 +584,7 @@ Deliverables:
 - Artemis II desktop dock shows media pins at reachable media times.
 - Pins are visually distinct from mission event/burn markers.
 - Clicking a reachable media pin seeks the orbit animation.
-- Clicking a media pin opens or focuses the media preview.
+- Clicking a reachable foreground media pin opens or focuses the media preview.
 - Focused tests cover marker propagation/rendering and the desktop/mobile
   visibility split.
 - A before/after screenshot can be captured for the desktop dock.
@@ -314,8 +607,8 @@ Deliverables:
 Acceptance criteria:
 
 - Artemis II dock shows media pins at reachable media times.
-- Selecting a media pin seeks the mission time and opens/focuses the media
-  preview.
+- Selecting a reachable foreground media pin seeks the mission time and
+  opens/focuses the media preview.
 - Event and media pins remain visually distinct.
 
 ### Phase 2: Add Phase and Data Bands
@@ -455,6 +748,13 @@ Likely implementation touch points:
 
 ## Tracking Checklist
 
+- [x] Document current bottom chrome behavior in the timeline/media playback spec.
+- [x] Align the event-strip viewport with the timeline track gutters.
+- [x] Reduce default no-media timeline dock height while preserving media-visible height.
+- [ ] Consolidate transport, timeline, Events, Media, zoom, and readouts into one visual console.
+- [ ] Add ruler subdivisions/ticks that respond to zoom level.
+- [ ] Add larger invisible hit areas for dense event/media markers and playhead drag.
+- [ ] Add screenshot coverage for compact, events-expanded, media-visible, and zoomed dock states.
 - [x] Confirm media markers render in the Artemis II dock.
 - [x] Add visual distinction between mission events and media pins.
 - [ ] Add phase/data band model.

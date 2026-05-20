@@ -2182,6 +2182,7 @@ html[data-app-view="selector"] .mission-loading-overlay,
 }
 
 .timeline-dock {
+    --timeline-track-gutter: max(14px, calc(var(--timeline-dock-offset) * 2));
     position: fixed;
     left: 0;
     right: 0;
@@ -2212,9 +2213,10 @@ html[data-app-view="selector"] .mission-loading-overlay,
 
 .timeline-dock__event-carousel.swiper2 {
     --timeline-event-gap: 18px;
-    width: 100%;
+    width: auto;
     max-width: 100%;
-    padding: 0 var(--timeline-dock-offset);
+    margin: 0 var(--timeline-track-gutter);
+    padding: 0;
     box-sizing: border-box;
     overflow-x: auto;
     overflow-y: hidden;
@@ -2390,7 +2392,11 @@ html[data-app-view="selector"] .mission-loading-overlay,
     height: 76px;
     display: block;
     touch-action: none;
-    margin: 0 max(14px, calc(var(--timeline-dock-offset) * 2));
+    margin: 0 var(--timeline-track-gutter);
+}
+
+.timeline-dock:not(.timeline-dock--media-track-visible) .timeline-dock__track-wrap {
+    height: 52px;
 }
 
 .timeline-dock__meta-row {
@@ -2429,6 +2435,11 @@ html[data-app-view="selector"] .mission-loading-overlay,
     height: 16px;
     cursor: pointer;
     touch-action: none;
+}
+
+.timeline-dock:not(.timeline-dock--media-track-visible) .timeline-dock__time-click-lane {
+    top: 8px;
+    height: 20px;
 }
 
 .timeline-dock__time-click-lane:hover {
@@ -2610,6 +2621,10 @@ html[data-app-view="selector"] .mission-loading-overlay,
     right: 0;
     height: 20px;
     pointer-events: none;
+}
+
+.timeline-dock:not(.timeline-dock--media-track-visible) .timeline-dock__markers {
+    top: 8px;
 }
 
 .timeline-dock__markers--media {
@@ -4380,7 +4395,16 @@ body.mobile-shell-enabled .mission-floating-collapse-btn {
         height: 50px;
     }
 
+    .timeline-dock:not(.timeline-dock--media-track-visible) .timeline-dock__track-wrap {
+        height: 50px;
+    }
+
     .timeline-dock__time-click-lane {
+        top: 4px;
+        height: 24px;
+    }
+
+    .timeline-dock:not(.timeline-dock--media-track-visible) .timeline-dock__time-click-lane {
         top: 4px;
         height: 24px;
     }

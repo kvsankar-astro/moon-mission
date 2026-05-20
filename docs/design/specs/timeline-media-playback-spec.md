@@ -1,6 +1,6 @@
 # Timeline And Media Playback Spec
 
-Last updated: 2026-05-14
+Last updated: 2026-05-20
 
 This spec defines how the mission clock, timeline controls, Frame and Shoot,
 Mission Media playback, and Background Video playback coordinate. It is the
@@ -30,6 +30,10 @@ reference for behavior in:
 
 - **Mission clock**: the current mission UTC timestamp in milliseconds.
 - **Timeline dock**: the fullscreen bottom timeline and media lane.
+- **Transport controls**: the desktop playback, step, speed, mode, and help
+  controls in `#control-panel`.
+- **Bottom chrome**: the combined bottom UI made from `#control-panel` plus
+  `#timeline-dock`.
 - **Media lane**: the row of timeline media markers. Segment markers represent
   media with duration.
 - **Frame and Shoot**: the composer-mode auxiliary panel and its phase-local
@@ -193,6 +197,54 @@ Transcript sync is also downstream of the mission-clock commit:
 - Raw transcript `startSeconds` / `endSeconds` are provenance ranges, not
   user-facing display windows.
 
+## Current Bottom Chrome Layout
+
+This section documents the current behavior. It is a baseline for future bottom
+panel redesign work, not a target design for a new console.
+
+`#control-panel` owns the primary desktop transport controls:
+
+- large and small backward/forward timeline steps
+- Play/Pause and Now
+- speed down, realtime, and speed up
+- mode controls such as Joy Ride
+- Info and keyboard shortcut help
+
+`#control-panel` is a viewport-rooted sibling of the header and content wrapper,
+not a descendant of `#header`. It must remain outside the header because the
+Dockview desktop header is a fixed, clipped visual-effect region. Putting fixed
+transport controls inside that region can hide or trap them.
+
+The transport controls are positioned above `#timeline-dock` with CSS variables
+managed by `control-panel-timeline-controller`:
+
+- `--timeline-dock-height` tracks the current visual height of the timeline
+  dock.
+- `--control-panel-visual-height` tracks whether the transport strip is taking
+  visual space.
+- `--timeline-dock-offset` is the shared bottom/side gutter used by the dock
+  and overlays.
+
+In Dockview desktop mode, transport controls are required to remain visible. If
+`control-panel--collapsed` is requested while `body.dockview-panels-enabled` is
+present, the controller resolves the effective state to expanded and the CSS
+keeps `#animation-control-panel` displayed. This is current behavior until the
+bottom chrome is redesigned.
+
+`#timeline-dock` owns the time axis and its dynamic tracks:
+
+- mission event pill carousel
+- event hover/caption lane
+- event markers
+- media rail and media markers
+- click-to-seek lane
+- playhead drag target
+- scrub/pan lane
+- time labels and current time readouts
+- Events and Media toggles
+- zoom, reset, and pan controls
+- optional craft strip
+
 ## Timeline Dock Semantics
 
 The timeline dock separates click-to-seek and drag-to-pan regions:
@@ -201,6 +253,21 @@ The timeline dock separates click-to-seek and drag-to-pan regions:
 - media lane: click sets mission time and selects matching media when relevant
 - playhead: drag sets mission time continuously
 - scrub/pan region: drag pans the visible timeline window, not mission time
+
+The Events track starts collapsed on bind. The `Events` button expands or
+collapses the event carousel and event markers. When it expands, the controller
+may scroll the upcoming event into view and run a short reduced-motion-aware
+cue. Horizontal dragging inside the event carousel suppresses the click that
+would otherwise fire at drag end.
+
+The `Media` button toggles the Mission Media workflow panel and the timeline
+media lane together. The media lane is desktop-only in the current
+implementation. On non-desktop layouts, the Media button is disabled and the
+media panel is closed if needed.
+
+Timeline dock height is dynamic. Expanding Events, showing Media, or changing
+event content must resync `--timeline-dock-height` so the transport strip and
+Dockview host reserve the correct bottom space.
 
 The expanded Events track is an event-inspection layer over the same time axis:
 
@@ -402,6 +469,10 @@ surface:
 - the Mission Media pill and timeline Media control toggle the same panel/lane
   state
 - closing the panel stops active media playback and pauses animation
+- `mission-media-panel-state` is the synchronization event that lets the bottom
+  dock follow panel open/close changes from other launch surfaces.
+- the timeline Media control is disabled when the media lane is unavailable,
+  currently on viewports below the desktop media-lane breakpoint.
 
 ## Required Regression Coverage
 
@@ -435,6 +506,12 @@ Minimum scenarios:
   foreground transport controls, so the same stream cannot play in both panels.
 - Background-role video markers are visible on the media timeline but are not
   clickable seek targets.
+- In Dockview desktop mode, `#control-panel` remains visible and clickable even
+  if a collapse request is made.
+- `#control-panel` remains outside `#header`, so Dockview header clipping cannot
+  hide fixed transport controls.
+- Timeline Events and Media toggles resync `--timeline-dock-height`, and the
+  Dockview host continues to reserve space above the bottom dock.
 
 ## Consistency Review
 
