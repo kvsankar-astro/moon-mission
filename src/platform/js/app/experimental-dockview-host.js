@@ -1103,6 +1103,12 @@ function renderMountedElementPanel({ params }) {
             if (mountClassName) {
                 mountedElement?.classList?.remove?.(mountClassName);
             }
+            if (typeof CustomEvent === "function") {
+                mountedElement?.dispatchEvent?.(new CustomEvent("moon-mission:dockview-panel-unmounted", {
+                    bubbles: true,
+                    detail: { mountElementId },
+                }));
+            }
             const fallbackParent = document.getElementById(params?.fallbackParentId || "");
             const nextParent = originalParent || fallbackParent;
             if (!nextParent || !mountedElement) return;
