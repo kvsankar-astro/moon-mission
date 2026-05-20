@@ -9,7 +9,7 @@ import {
     resolveTimelineEventLabel,
 } from "./comparison-timeline.js";
 import { resolveTimelineEventHighlightState } from "../core/domain/timeline-event-highlight-state.js";
-import { buildTimelineTimeLabels } from "../core/domain/timeline-time-labels.js";
+import { buildTimelineTimeScale } from "../core/domain/timeline-time-labels.js";
 
 function clamp(value, min, max) {
     if (!Number.isFinite(value)) return min;
@@ -561,7 +561,7 @@ function createTimelineDockController({
             syncHoveredVisibleEventRange();
             return;
         }
-        const labels = buildTimelineTimeLabels({
+        const timeScale = buildTimelineTimeScale({
             startTimeMs: viewMin,
             endTimeMs: viewMax,
             widthPx: getTrackWidthPx(),
@@ -569,7 +569,7 @@ function createTimelineDockController({
         });
 
         timeLabels.innerHTML = "";
-        for (const labelInfo of labels) {
+        for (const labelInfo of timeScale.labels) {
             const label = document.createElement("span");
             label.className = "timeline-dock__time-label";
             label.style.left = `${labelInfo.percent}%`;
@@ -577,6 +577,14 @@ function createTimelineDockController({
             label.title = labelInfo.label;
             label.dataset.timeMs = String(labelInfo.timeMs);
             timeLabels.appendChild(label);
+        }
+        for (const tickInfo of timeScale.minorTicks) {
+            const tick = document.createElement("span");
+            tick.className = "timeline-dock__time-tick timeline-dock__time-tick--minor";
+            tick.style.left = `${tickInfo.percent}%`;
+            tick.setAttribute?.("aria-hidden", "true");
+            tick.dataset.timeMs = String(tickInfo.timeMs);
+            timeLabels.appendChild(tick);
         }
         syncScaleButtons();
         syncTimelineOverview();

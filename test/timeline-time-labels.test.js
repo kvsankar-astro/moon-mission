@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+    buildTimelineTimeScale,
     buildTimelineTimeLabels,
     selectTimelineTimeLabelInterval,
 } from "../src/platform/js/core/domain/timeline-time-labels.js";
@@ -99,5 +100,41 @@ describe("timeline time labels", () => {
 
         expect(labels.length).toBeGreaterThanOrEqual(2);
         expect(labels.every((label) => label.intervalUnit === "day")).toBe(true);
+    });
+
+    it("adds minor ticks only when major label spacing can support them", () => {
+        const startTimeMs = new Date(2026, 3, 1, 0, 0, 0).getTime();
+        const endTimeMs = new Date(2026, 3, 12, 0, 0, 0).getTime();
+
+        const wide = buildTimelineTimeScale({
+            startTimeMs,
+            endTimeMs,
+            widthPx: 1200,
+        });
+        const narrow = buildTimelineTimeScale({
+            startTimeMs,
+            endTimeMs,
+            widthPx: 140,
+        });
+
+        expect(wide.labels.length).toBeGreaterThan(1);
+        expect(wide.minorTicks.length).toBeGreaterThan(0);
+        expect(wide.minorTicks.every((tick) => tick.percent > 0 && tick.percent < 100)).toBe(true);
+        expect(narrow.minorTicks.length).toBe(0);
+    });
+
+    it("uses calendar ticks for month-scale ranges", () => {
+        const startTimeMs = new Date(2026, 0, 15, 0, 0, 0).getTime();
+        const endTimeMs = new Date(2026, 6, 15, 0, 0, 0).getTime();
+
+        const labels = buildTimelineTimeLabels({
+            startTimeMs,
+            endTimeMs,
+            widthPx: 900,
+        });
+
+        expect(labels.length).toBeGreaterThan(0);
+        expect(labels.every((label) => label.intervalUnit === "month")).toBe(true);
+        expect(labels.map((label) => label.label)).toContain("Apr");
     });
 });

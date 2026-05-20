@@ -3043,6 +3043,7 @@ html[data-app-view="selector"] .mission-loading-overlay,
     color: rgba(196, 214, 241, 0.72);
     font-variant-numeric: tabular-nums;
     text-align: center;
+    z-index: 2;
 }
 
 .timeline-dock__time-label::before {
@@ -3053,6 +3054,20 @@ html[data-app-view="selector"] .mission-loading-overlay,
     margin: 0 auto 2px;
     border-radius: 999px;
     background: rgba(157, 190, 232, 0.4);
+}
+
+.timeline-dock__time-tick {
+    position: absolute;
+    bottom: 11px;
+    transform: translateX(-50%);
+    width: 1px;
+    border-radius: 999px;
+    pointer-events: none;
+}
+
+.timeline-dock__time-tick--minor {
+    height: 3px;
+    background: rgba(157, 190, 232, 0.22);
 }
 
 .timeline-dock__edge {

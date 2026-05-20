@@ -2,6 +2,11 @@ const SECOND_MS = 1000;
 const MINUTE_MS = 60 * SECOND_MS;
 const HOUR_MS = 60 * MINUTE_MS;
 const DAY_MS = 24 * HOUR_MS;
+const TARGET_MAJOR_TICK_SPACING_PX = 170;
+const MIN_MAJOR_TICK_SPACING_PX = 120;
+const MAX_MAJOR_TICK_SPACING_PX = 220;
+const MIN_MINOR_TICK_SPACING_PX = 18;
+const MINOR_SUBDIVISIONS = 4;
 
 const MONTH_NAMES = [
     "Jan",
@@ -97,7 +102,7 @@ function intervalApproxMs(interval) {
 
 function targetLabelCount(widthPx, densityOffset) {
     const safeWidth = Number.isFinite(widthPx) && widthPx > 0 ? widthPx : 720;
-    const base = Math.floor(safeWidth / 118);
+    const base = Math.round(safeWidth / TARGET_MAJOR_TICK_SPACING_PX);
     return clamp(base + Number(densityOffset || 0) * 3, 1, 12);
 }
 
@@ -275,7 +280,61 @@ function buildTimelineTimeLabels({
     return labels;
 }
 
+function buildMinorTicks(labels, widthPx = 0) {
+    if (!Array.isArray(labels) || labels.length < 2) return [];
+    const safeWidth = Number.isFinite(widthPx) && widthPx > 0 ? widthPx : 720;
+    const ticks = [];
+
+    for (let index = 0; index < labels.length - 1; index += 1) {
+        const left = labels[index];
+        const right = labels[index + 1];
+        const leftPercent = Number(left?.percent);
+        const rightPercent = Number(right?.percent);
+        const leftTimeMs = Number(left?.timeMs);
+        const rightTimeMs = Number(right?.timeMs);
+        if (
+            !Number.isFinite(leftPercent) ||
+            !Number.isFinite(rightPercent) ||
+            !Number.isFinite(leftTimeMs) ||
+            !Number.isFinite(rightTimeMs) ||
+            rightPercent <= leftPercent ||
+            rightTimeMs <= leftTimeMs
+        ) {
+            continue;
+        }
+
+        const gapPx = ((rightPercent - leftPercent) / 100) * safeWidth;
+        if (gapPx / (MINOR_SUBDIVISIONS + 1) < MIN_MINOR_TICK_SPACING_PX) {
+            continue;
+        }
+
+        for (let step = 1; step <= MINOR_SUBDIVISIONS; step += 1) {
+            const ratio = step / (MINOR_SUBDIVISIONS + 1);
+            ticks.push({
+                percent: leftPercent + (rightPercent - leftPercent) * ratio,
+                timeMs: leftTimeMs + (rightTimeMs - leftTimeMs) * ratio,
+            });
+        }
+    }
+
+    return ticks;
+}
+
+function buildTimelineTimeScale(options = {}) {
+    const labels = buildTimelineTimeLabels(options);
+    const widthPx = Number(options?.widthPx);
+    return {
+        labels,
+        minorTicks: buildMinorTicks(labels, widthPx),
+        targetMajorTickSpacingPx: TARGET_MAJOR_TICK_SPACING_PX,
+        minMajorTickSpacingPx: MIN_MAJOR_TICK_SPACING_PX,
+        maxMajorTickSpacingPx: MAX_MAJOR_TICK_SPACING_PX,
+        minMinorTickSpacingPx: MIN_MINOR_TICK_SPACING_PX,
+    };
+}
+
 export {
+    buildTimelineTimeScale,
     buildTimelineTimeLabels,
     formatTimelineTimeLabel,
     selectTimelineTimeLabelInterval,

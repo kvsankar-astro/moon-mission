@@ -343,6 +343,9 @@ describe("createTimelineDockController", () => {
         expect(initialCount).toBeGreaterThan(0);
         expect(timeLabels.children[0].className).toBe("timeline-dock__time-label");
         expect(timeLabels.children[0].textContent).toMatch(/^Apr \d+$/);
+        expect(timeLabels.children.some((child) => (
+            child.className === "timeline-dock__time-tick timeline-dock__time-tick--minor"
+        ))).toBe(true);
         expect(scaleResetButton.disabled).toBe(true);
         expect(markers.children).toHaveLength(3);
 
