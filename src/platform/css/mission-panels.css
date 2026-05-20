@@ -2022,10 +2022,11 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 }
 
 .media-browser-panel__media-button--play {
-    width: auto;
-    min-width: 64px;
-    padding: 0 12px;
-    font-size: 12px;
+    width: 28px;
+    min-width: 28px;
+    padding: 0;
+    font-family: "Segoe UI Symbol", "Noto Sans Symbols", var(--ui-font-condensed);
+    font-size: 15px;
     font-weight: 600;
     line-height: 1;
     color: #f4f8ff;
@@ -2526,7 +2527,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 }
 
 .background-media-panel--with-transcript {
-    grid-template-rows: auto minmax(128px, 0.95fr) minmax(132px, 0.75fr) auto;
+    grid-template-rows: auto minmax(128px, 0.95fr) minmax(132px, 0.75fr);
 }
 
 .background-media-panel--hidden {
@@ -2647,6 +2648,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 }
 
 .background-media-panel__stage {
+    container-type: inline-size;
     position: relative;
     min-width: 0;
     min-height: 0;
@@ -2782,20 +2784,21 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 
 .background-media-panel__time-overlay {
     position: absolute;
-    right: 10px;
-    bottom: 10px;
+    left: 10px;
+    top: 9px;
     z-index: 2;
-    min-width: 42px;
-    padding: 5px 8px;
-    border: 1px solid rgba(161, 193, 236, 0.2);
-    border-radius: 999px;
-    background: rgba(4, 9, 17, 0.46);
-    color: rgba(222, 236, 255, 0.84);
+    min-width: 72px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: rgba(218, 233, 255, 0.72);
     font-size: 10px;
     font-weight: 700;
-    line-height: 1;
-    text-align: center;
-    backdrop-filter: blur(6px);
+    line-height: 1.2;
+    text-align: left;
+    white-space: pre-line;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.88);
     pointer-events: none;
 }
 
@@ -2828,20 +2831,26 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 .background-media-panel__caption-text {
     position: absolute;
     left: 50%;
-    bottom: 42px;
+    bottom: 14px;
     z-index: 3;
     width: min(92%, 720px);
     transform: translateX(-50%);
-    padding: 7px 10px;
+    padding: 5px 8px;
     border-radius: 6px;
     background: rgba(0, 0, 0, 0.72);
     color: rgba(255, 255, 255, 0.98);
-    font-size: 15px;
+    font-size: clamp(10px, 2.7cqi, 15px);
     font-weight: 650;
-    line-height: 1.32;
+    line-height: 1.25;
     text-align: center;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
     pointer-events: none;
+    transition: bottom 120ms ease;
+}
+
+.background-media-panel__stage:hover .background-media-panel__caption-text,
+.background-media-panel__stage:focus-within .background-media-panel__caption-text {
+    bottom: 64px;
 }
 
 .background-media-panel__caption-text[hidden] {
@@ -2852,7 +2861,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     min-width: 0;
     min-height: 0;
     display: grid;
-    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr);
     border-top: 1px solid rgba(152, 186, 236, 0.14);
     background: rgba(4, 9, 18, 0.96);
 }
@@ -2891,6 +2900,19 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     font-variant-numeric: tabular-nums;
     line-height: 1.1;
     white-space: nowrap;
+}
+
+.background-media-panel__transcript-note {
+    padding: 7px 10px;
+    border-bottom: 1px solid rgba(152, 186, 236, 0.08);
+    background: rgba(9, 16, 28, 0.7);
+    color: rgba(184, 201, 226, 0.74);
+    font-size: 10px;
+    line-height: 1.3;
+}
+
+.background-media-panel__transcript-note[hidden] {
+    display: none;
 }
 
 .background-media-panel__transcript-list {
@@ -2959,13 +2981,31 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 }
 
 .background-media-panel__controls {
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    bottom: 9px;
+    z-index: 5;
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-columns: 30px minmax(0, 1fr);
     align-items: center;
     gap: 8px;
-    padding: 8px;
-    border-top: 1px solid rgba(152, 186, 236, 0.14);
-    background: rgba(7, 13, 23, 0.88);
+    padding: 6px 8px;
+    border: 1px solid rgba(152, 186, 236, 0.18);
+    border-radius: 8px;
+    background: rgba(7, 13, 23, 0.72);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(4px);
+    transition: opacity 120ms ease, transform 120ms ease;
+    backdrop-filter: blur(8px);
+}
+
+.background-media-panel__stage:hover .background-media-panel__controls,
+.background-media-panel__stage:focus-within .background-media-panel__controls {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
 }
 
 .background-media-panel__controls[hidden] {
@@ -2973,17 +3013,51 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 }
 
 .background-media-panel__play-toggle {
+    width: 28px;
+    min-width: 28px;
     min-height: 26px;
-    padding: 0 10px;
+    padding: 0;
     color: rgba(232, 242, 255, 0.92);
-    font-size: 11px;
+    font-family: "Segoe UI Symbol", "Noto Sans Symbols", var(--ui-font-condensed);
+    font-size: 16px;
     font-weight: 700;
+    line-height: 1;
 }
 
 .background-media-panel__play-toggle.is-active {
     border-color: rgba(121, 171, 255, 0.62);
     background: rgba(62, 104, 180, 0.28);
     color: rgba(241, 247, 255, 0.98);
+}
+
+.background-media-panel__stage-controls {
+    position: absolute;
+    right: 10px;
+    top: 8px;
+    z-index: 6;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.background-media-panel__stage-controls .background-media-panel__icon-button {
+    width: 26px;
+    height: 24px;
+    border-radius: 8px;
+    background-color: rgba(6, 12, 22, 0.66);
+    backdrop-filter: blur(7px);
+}
+
+.background-media-panel__timeline {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+}
+
+.background-media-panel__timeline-slider {
+    width: 100%;
+    min-width: 72px;
+    accent-color: #7bb6ff;
 }
 
 .background-media-panel__advanced-option {
@@ -3009,12 +3083,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 }
 
 .background-media-panel__meta {
-    min-width: 0;
-    display: grid;
-    gap: 2px;
-    color: rgba(198, 218, 247, 0.86);
-    font-size: 11px;
-    line-height: 1.3;
+    display: none;
 }
 
 #background-media-title,
@@ -3037,11 +3106,11 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     }
 
     .background-media-panel--with-transcript {
-        grid-template-rows: auto minmax(116px, 0.85fr) minmax(150px, 1fr) auto;
+        grid-template-rows: auto minmax(116px, 0.85fr) minmax(150px, 1fr);
     }
 
     .background-media-panel__controls {
-        grid-template-columns: minmax(0, 1fr);
+        grid-template-columns: auto minmax(0, 1fr);
     }
 
     .background-media-panel__transcript-row {
@@ -3188,7 +3257,12 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 }
 
 .ground-track-panel__timeline-transport .button--primary {
-    min-width: 56px;
+    width: 28px;
+    min-width: 28px;
+    padding: 0;
+    font-family: "Segoe UI Symbol", "Noto Sans Symbols", var(--ui-font-condensed);
+    font-size: 14px;
+    line-height: 1;
 }
 
 .ground-track-panel__timeline-transport .button--realtime {

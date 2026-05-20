@@ -4230,7 +4230,7 @@ describe("createMediaTimelineCoordination", () => {
         expect(bufferingRender.playbackModel).toEqual(expect.objectContaining({
             buffering: true,
             playing: true,
-            playLabel: "Play",
+            playLabel: "▶",
             showControls: true,
         }));
 

@@ -3092,8 +3092,8 @@ function createMediaTimelineCoordination({
                 muted: missionMediaMuted === true,
                 showControls: activePlayable,
                 playLabel: activePlaybackBuffering
-                    ? "Play"
-                    : (activePlaybackPlaying ? "Pause" : "Play"),
+                    ? "▶"
+                    : (activePlaybackPlaying ? "⏸" : "▶"),
                 playTitle: activePlaybackBuffering
                     ? "Resume media playback"
                     : (activePlaybackPlaying

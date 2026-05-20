@@ -3100,7 +3100,7 @@ class AuxiliaryCameraViewsManager {
             composerTransportPlayButton = document.createElement("button");
             composerTransportPlayButton.type = "button";
             composerTransportPlayButton.className = "button button--primary";
-            composerTransportPlayButton.textContent = "Play";
+            composerTransportPlayButton.textContent = "▶";
             composerTransportPlayButton.setAttribute("aria-label", "Play or pause animation");
             composerSpeedCluster.appendChild(composerTransportPlayButton);
 
@@ -6099,14 +6099,14 @@ class AuxiliaryCameraViewsManager {
 
         const mainPlayButton = document.getElementById("animate");
         if (isDomInstance(mainPlayButton, "HTMLButtonElement")) {
-            playButton.textContent = mainPlayButton.textContent || "Play";
+            playButton.textContent = mainPlayButton.textContent || "▶";
             playButton.disabled = mainPlayButton.disabled || mainPlayButton.getAttribute("aria-disabled") === "true";
             const mainPlayTitle = mainPlayButton.getAttribute("title");
             if (mainPlayTitle) {
                 playButton.setAttribute("title", mainPlayTitle);
             }
         } else {
-            playButton.textContent = "Play";
+            playButton.textContent = "▶";
             playButton.disabled = true;
         }
 

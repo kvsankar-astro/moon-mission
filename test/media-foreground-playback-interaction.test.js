@@ -120,7 +120,7 @@ describe("Mission Media foreground playback interactions", () => {
                 document.querySelector("#background-media-empty .background-media-panel__jump-button")?.click();
             });
             await page.waitForFunction(
-                () => document.getElementById("animate")?.textContent?.trim() === "Pause",
+                () => document.getElementById("animate")?.textContent?.trim() === "⏸",
                 { timeout: 10000 },
             );
 
@@ -171,7 +171,7 @@ describe("Mission Media foreground playback interactions", () => {
 
             expect(state.foregroundTitle).toBe("Foreground Flyby Clip");
             expect(state.foregroundStatus).toContain("Video playing");
-            expect(state.foregroundPlayButton).toBe("Pause");
+            expect(state.foregroundPlayButton).toBe("⏸");
             expect(state.foregroundHidden).toBe(false);
             expect(state.foregroundMuted).toBe(false);
             expect(state.backgroundMuted).toBe(false);
@@ -186,7 +186,7 @@ describe("Mission Media foreground playback interactions", () => {
                 }
             });
             await page.waitForFunction(
-                () => document.getElementById("media-browser-media-play")?.textContent?.trim() === "Play",
+                () => document.getElementById("media-browser-media-play")?.textContent?.trim() === "▶",
                 { timeout: 10000 },
             );
 
@@ -200,7 +200,7 @@ describe("Mission Media foreground playback interactions", () => {
                 };
             });
 
-            expect(releaseState.animationButton).toBe("Pause");
+            expect(releaseState.animationButton).toBe("⏸");
             expect(releaseState.foregroundStatus).not.toContain("playing");
             expect(releaseState.backgroundMuted).toBe(false);
             expect(releaseState.backgroundStatus).not.toContain("Muted for Foreground Media");

@@ -1877,7 +1877,7 @@ function createMediaBrowserPanelActions({
         }
         if (playButton) {
             playButton.disabled = !show;
-            playButton.textContent = playbackModel.playLabel || (isBusy ? "Pause" : "Play");
+            playButton.textContent = isBusy ? "⏸" : "▶";
             playButton.title = playbackModel.playTitle || (isBusy
                 ? "Pause media playback"
                 : "Play media from the current mission time");

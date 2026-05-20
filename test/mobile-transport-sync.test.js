@@ -132,9 +132,9 @@ function createTransportSet() {
 function createDesktopTransport(overrides = {}) {
     return {
         animate: createButtonStub({
-            textContent: "Play",
+            textContent: "▶",
             onClick(button) {
-                button.textContent = "Pause";
+                button.textContent = "⏸";
             },
             ...overrides.animate,
         }),
@@ -168,7 +168,7 @@ describe("bindMobileTransportSync", () => {
     it("mirrors desktop transport state into each mobile control set and wires observers", () => {
         const mobileTransportSets = [createTransportSet(), createTransportSet()];
         const desktopTransport = createDesktopTransport({
-            animate: { textContent: "Pause" },
+            animate: { textContent: "⏸" },
             missionnow: {
                 textContent: "Live",
                 title: "Jump to live time",
@@ -195,7 +195,7 @@ describe("bindMobileTransportSync", () => {
         });
 
         mobileTransportSets.forEach((set) => {
-            expect(set.play.textContent).toBe("Pause");
+            expect(set.play.textContent).toBe("⏸");
             expect(set.play.classList.contains("is-active")).toBe(true);
             expect(set.now.textContent).toBe("Live");
             expect(set.now.title).toBe("Jump to live time");
@@ -244,15 +244,15 @@ describe("bindMobileTransportSync", () => {
             MutationObserverRef: null,
         });
 
-        expect(mobileTransportSet.play.textContent).toBe("Play");
+        expect(mobileTransportSet.play.textContent).toBe("▶");
 
         mobileTransportSet.play.dispatch("click");
         expect(desktopTransport.animate.click).toHaveBeenCalledTimes(1);
-        expect(mobileTransportSet.play.textContent).toBe("Play");
+        expect(mobileTransportSet.play.textContent).toBe("▶");
         windowRef.runNextAnimationFrame();
-        expect(mobileTransportSet.play.textContent).toBe("Play");
+        expect(mobileTransportSet.play.textContent).toBe("▶");
         windowRef.runNextAnimationFrame();
-        expect(mobileTransportSet.play.textContent).toBe("Pause");
+        expect(mobileTransportSet.play.textContent).toBe("⏸");
         expect(mobileTransportSet.play.classList.contains("is-active")).toBe(true);
 
         mobileTransportSet.now.dispatch("click");
@@ -286,7 +286,7 @@ describe("bindMobileTransportSync", () => {
             MutationObserverRef: MutationObserverStub,
         });
 
-        desktopTransport.animate.textContent = "Pause";
+        desktopTransport.animate.textContent = "⏸";
         desktopTransport.missionnow.textContent = "Realtime";
         desktopTransport.missionnow.title = "Jump to realtime";
         desktopTransport.missionnow.setAttribute("aria-label", "Jump to realtime");
@@ -298,7 +298,7 @@ describe("bindMobileTransportSync", () => {
 
         instances.forEach((instance) => instance.trigger());
 
-        expect(mobileTransportSet.play.textContent).toBe("Pause");
+        expect(mobileTransportSet.play.textContent).toBe("⏸");
         expect(mobileTransportSet.play.classList.contains("is-active")).toBe(true);
         expect(mobileTransportSet.now.textContent).toBe("Realtime");
         expect(mobileTransportSet.now.title).toBe("Jump to realtime");

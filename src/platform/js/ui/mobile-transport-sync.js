@@ -38,8 +38,9 @@ function bindMobileTransportSync(deps) {
     const syncTransportState = () => {
         mobileTransportSets.forEach((set) => {
             if (set.play && desktopPlay) {
-                const isPlaying = (desktopPlay.textContent || "").trim().toLowerCase() === "pause";
-                set.play.textContent = isPlaying ? "Pause" : "Play";
+                const playLabel = (desktopPlay.textContent || "").trim();
+                const isPlaying = playLabel === "⏸" || playLabel.toLowerCase() === "pause";
+                set.play.textContent = isPlaying ? "⏸" : "▶";
                 set.play.classList.toggle("is-active", isPlaying);
             }
             if (set.now && desktopNow) {

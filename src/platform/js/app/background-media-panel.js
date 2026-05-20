@@ -49,6 +49,8 @@ const STREAM_HARD_SEEK_THRESHOLD_SECONDS = 6;
 const STREAM_SOFT_CORRECTION_THRESHOLD_SECONDS = 0.75;
 const BACKGROUND_STATUS_TOAST_DURATION_MS = 3200;
 const HLS_FRAME_PREVIEW_LOAD_BUCKET_SECONDS = 4;
+const MEDIA_PLAY_SYMBOL = "▶";
+const MEDIA_PAUSE_SYMBOL = "⏸";
 
 let hlsLibraryPromise = null;
 const backgroundCandidatesCache = new WeakMap();
@@ -154,7 +156,12 @@ function setClassToggled(node, className, enabled) {
     classStates.set(className, nextEnabled);
 }
 
-function syncTimeOverlay(seconds = Number.NaN, hidden = false) {
+function syncTimeOverlay(
+    seconds = Number.NaN,
+    hidden = false,
+    missionTimeMs = Number.NaN,
+    missionStartTimeMs = Number.NaN,
+) {
     const overlay = getNode("background-media-time-overlay");
     if (!overlay) return;
     const safeSeconds = Number(seconds);
@@ -162,8 +169,10 @@ function syncTimeOverlay(seconds = Number.NaN, hidden = false) {
     setNodeHidden(overlay, hidden === true || !hasTime);
     if (!hasTime) return;
     const label = formatStatusTime(safeSeconds);
-    setNodeText(overlay, label);
-    setNodeTitle(overlay, `Broadcast time ${label}`);
+    const metLabel = formatShortMissionElapsedTime(missionTimeMs, missionStartTimeMs);
+    const combinedLabel = `${label}\n${metLabel}`;
+    setNodeText(overlay, combinedLabel);
+    setNodeTitle(overlay, `Broadcast time ${label}; ${metLabel}`);
 }
 
 function parseVttTimestamp(value = "") {
@@ -340,10 +349,15 @@ function getCaptionTrackAttribution(item) {
 function syncCaptionAttribution(item = null, captionsEnabled = true) {
     const attribution = String(item?.transcriptDoc?.attribution || "").trim()
         || getCaptionTrackAttribution(item);
-    const node = getNode("background-media-caption-attribution");
-    if (!node) return;
-    setNodeText(node, attribution);
-    setNodeHidden(node, captionsEnabled !== true || !attribution);
+    const overlay = getNode("background-media-caption-attribution");
+    if (overlay) {
+        setNodeText(overlay, "");
+        setNodeHidden(overlay, true);
+    }
+    const note = getNode("background-media-transcript-note");
+    if (!note) return;
+    setNodeText(note, attribution);
+    setNodeHidden(note, captionsEnabled !== true || !attribution);
 }
 
 function syncRenderedTranscriptCaption(item, offsetSeconds, onLoaded) {
@@ -506,20 +520,20 @@ function resolveBackgroundPlaybackButtonState({
 } = {}) {
     if (playbackEnabled === true && animationRunning === true) {
         return {
-            label: "Pause broadcast",
+            label: MEDIA_PAUSE_SYMBOL,
             title: "Pause the broadcast video",
             pressed: true,
         };
     }
     if (playbackEnabled === true) {
         return {
-            label: "Resume broadcast",
+            label: MEDIA_PLAY_SYMBOL,
             title: "Resume the broadcast video at the current mission time",
             pressed: true,
         };
     }
     return {
-        label: "Play broadcast",
+        label: MEDIA_PLAY_SYMBOL,
         title: "Play the broadcast video at the current mission time",
         pressed: false,
     };
@@ -852,6 +866,7 @@ function createBackgroundMediaPanelActions({
     let activeTranscriptRow = null;
     let activeTranscriptSegmentKey = "";
     let transcriptSeekItem = null;
+    let timelineSeekItem = null;
 
     function requestWorkflowStackLayout() {
         const documentRef = getDocumentRef();
@@ -894,7 +909,7 @@ function createBackgroundMediaPanelActions({
             },
             initialWidth: 300,
             minimumWidth: 260,
-            minimumHeight: MIN_PANEL_HEIGHT_PX,
+            minimumHeight: 160,
         });
         layoutHost.focusPanel(BACKGROUND_MEDIA_PANEL_ID);
         return true;
@@ -1598,6 +1613,47 @@ function createBackgroundMediaPanelActions({
         setNodeHidden(controls, hidden === true);
     }
 
+    function getTimelineDurationSeconds(item) {
+        const durationSeconds = Number(item?.durationSeconds);
+        if (Number.isFinite(durationSeconds) && durationSeconds > 0) return durationSeconds;
+        const startTimeMs = Number(item?.startTimeMs);
+        const endTimeMs = resolveItemEndTimeMs(item);
+        if (!Number.isFinite(startTimeMs) || !Number.isFinite(endTimeMs) || endTimeMs <= startTimeMs) {
+            return Number.NaN;
+        }
+        return (endTimeMs - startTimeMs) / 1000;
+    }
+
+    function syncTimelineSlider(item, offsetSeconds = Number.NaN) {
+        const slider = getNode("background-media-timeline");
+        if (!slider) return;
+        timelineSeekItem = item || null;
+        const durationSeconds = getTimelineDurationSeconds(item);
+        const safeOffsetSeconds = Number(offsetSeconds);
+        const hasTimeline = Number.isFinite(durationSeconds) && durationSeconds > 0;
+        slider.disabled = !hasTimeline;
+        setNodeAttribute(slider, "aria-disabled", hasTimeline ? "false" : "true");
+        slider.min = "0";
+        slider.max = hasTimeline ? String(Math.max(0.25, durationSeconds)) : "0";
+        slider.step = "0.25";
+        const value = hasTimeline && Number.isFinite(safeOffsetSeconds)
+            ? clamp(safeOffsetSeconds, 0, durationSeconds)
+            : 0;
+        slider.value = String(value);
+        setNodeAttribute(slider, "aria-valuetext", hasTimeline ? formatStatusTime(value) : "Unavailable");
+    }
+
+    function seekToTimelineValue() {
+        const slider = getNode("background-media-timeline");
+        const item = timelineSeekItem;
+        const startTimeMs = Number(item?.startTimeMs);
+        const valueSeconds = Number(slider?.value);
+        if (!slider || !item || !Number.isFinite(startTimeMs) || !Number.isFinite(valueSeconds)) return;
+        const timeOffsetSeconds = Number(item?.timeOffsetSeconds);
+        const missionOffsetSeconds = valueSeconds - (Number.isFinite(timeOffsetSeconds) ? timeOffsetSeconds : 0);
+        onJumpToTime(startTimeMs + missionOffsetSeconds * 1000, item);
+    }
+
     function openPanel() {
         if (!panelAvailable) return;
         panelState = "open";
@@ -1936,6 +1992,12 @@ function createBackgroundMediaPanelActions({
         getNode("background-media-enable")?.addEventListener?.("click", togglePlaybackEnabled);
         getNode("background-media-mute")?.addEventListener?.("click", toggleMuted);
         getNode("background-media-captions")?.addEventListener?.("click", toggleCaptions);
+        getNode("background-media-timeline")?.addEventListener?.("input", seekToTimelineValue);
+        getDocumentRef()?.addEventListener?.("moon-mission:dockview-panel-mounted", (event) => {
+            if (event?.detail?.mountElementId === "background-media-transcript") {
+                render(lastRenderModel);
+            }
+        });
         panel.addEventListener?.("pointerdown", bringPanelToFront, true);
         bindPanelDragging();
         bindPanelResizing();
@@ -2029,12 +2091,18 @@ function createBackgroundMediaPanelActions({
         const available = panelAvailable && candidates.length > 0;
         playbackTimelineRunning = playbackEnabled === true && animationRunning === true;
         if (!available || !activeItem) {
+            const nearest = available ? resolveNearestInactiveBackgroundCandidate(candidates, timeMs) : null;
             lastPlaybackMode = "";
             lastForegroundEffect = "";
             setControlsHidden(true);
             syncTimeOverlay(Number.NaN, true);
+            syncTimelineSlider(null);
             setCaptionText("");
-            clearTranscriptPanel();
+            if (nearest?.item) {
+                syncTranscriptPanel(nearest.item, Number.NaN, () => render(lastRenderModel));
+            } else {
+                clearTranscriptPanel();
+            }
             setHidden("background-media-empty", false);
             setHidden("background-media-live", true);
             if (available) {
@@ -2048,7 +2116,7 @@ function createBackgroundMediaPanelActions({
             return;
         }
 
-        setControlsHidden(true);
+        setControlsHidden(false);
         setHidden("background-media-empty", true);
         setText("background-media-title", activeItem.title || "Background video");
         const video = getVideo();
@@ -2063,7 +2131,8 @@ function createBackgroundMediaPanelActions({
         });
         const sourceChanged = activeItem.id !== activeItemId || activeItem.assetUrl !== videoSourceUrl;
         const offsetSeconds = resolvePlaybackOffsetSeconds(activeItem, timeMs);
-        syncTimeOverlay(offsetSeconds, false);
+        syncTimeOverlay(offsetSeconds, false, timeMs, getMissionStartTime());
+        syncTimelineSlider(activeItem, offsetSeconds);
         syncCaptionAttribution(activeItem, captionsEnabled);
         syncRenderedCaption(activeItem, offsetSeconds, () => render(lastRenderModel), captionsEnabled);
         syncTranscriptPanel(activeItem, offsetSeconds, () => render(lastRenderModel));

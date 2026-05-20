@@ -49,7 +49,7 @@ describe("experimental Dockview host helpers", () => {
             },
         };
 
-        expect(getDockviewSpikeStorageKey()).toBe("moon-mission:dockview-spike:v7:artemis2");
+        expect(getDockviewSpikeStorageKey()).toBe("moon-mission:dockview-spike:v9:artemis2");
     });
 
     it("uses a separate shell geometry storage key", () => {
@@ -59,7 +59,7 @@ describe("experimental Dockview host helpers", () => {
             },
         };
 
-        expect(getDockviewSpikeShellStorageKey()).toBe("moon-mission:dockview-spike:v7:artemis2:shell");
+        expect(getDockviewSpikeShellStorageKey()).toBe("moon-mission:dockview-spike:v9:artemis2:shell");
     });
 
     it("clamps shell geometry inside the viewport", () => {

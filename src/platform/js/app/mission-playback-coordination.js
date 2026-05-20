@@ -226,7 +226,7 @@ function createAnimationControllerCallbacks({
         },
         onPlayStateChange: (isPlaying) => {
             runtimeSessionState.setAnimationRunning(isPlaying);
-            updateD3ElementText("#animate", isPlaying ? "Pause" : "Play");
+            updateD3ElementText("#animate", isPlaying ? "⏸" : "▶");
             updateTransportControlsUI(isPlaying);
             dispatchAnimationPlayStateUpdated(isPlaying);
             getSetView()?.();

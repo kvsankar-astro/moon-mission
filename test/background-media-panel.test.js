@@ -128,11 +128,13 @@ describe("background media panel helpers", () => {
             "background-media-caption-attribution",
             "background-media-transcript",
             "background-media-transcript-status",
+            "background-media-transcript-note",
             "background-media-transcript-list",
             "background-media-title",
             "background-media-status",
             "background-media-controls",
             "background-media-enable",
+            "background-media-timeline",
             "background-media-mute",
             "background-media-captions",
             "background-media-panel-expand",
@@ -353,7 +355,7 @@ describe("background media panel helpers", () => {
             playbackEnabled: false,
             animationRunning: false,
         })).toEqual(expect.objectContaining({
-            label: "Play broadcast",
+            label: "▶",
             pressed: false,
         }));
 
@@ -361,7 +363,7 @@ describe("background media panel helpers", () => {
             playbackEnabled: true,
             animationRunning: false,
         })).toEqual(expect.objectContaining({
-            label: "Resume broadcast",
+            label: "▶",
             pressed: true,
         }));
 
@@ -369,7 +371,7 @@ describe("background media panel helpers", () => {
             playbackEnabled: true,
             animationRunning: true,
         })).toEqual(expect.objectContaining({
-            label: "Pause broadcast",
+            label: "⏸",
             pressed: true,
         }));
     });
@@ -430,6 +432,7 @@ describe("background media panel helpers", () => {
             "background-media-status",
             "background-media-controls",
             "background-media-enable",
+            "background-media-timeline",
             "background-media-mute",
             "background-media-captions",
             "background-media-panel-expand",
@@ -564,6 +567,7 @@ describe("background media panel helpers", () => {
         const actions = createBackgroundMediaPanelActions({
             getAnimationRunning: () => false,
             getAnimationRealtime: () => true,
+            getMissionStartTime: () => startTimeMs,
         });
         openEnabledBackgroundPanel(actions, nodes);
 
@@ -590,9 +594,10 @@ describe("background media panel helpers", () => {
         expect(video.src).toBe("broadcast.mp4");
         expect(video.currentTime).toBe(12);
         expect(nodes.get("background-media-status").textContent).toContain("Paused");
-        expect(nodes.get("background-media-controls").hidden).toBe(true);
+        expect(nodes.get("background-media-controls").hidden).toBe(false);
         expect(nodes.get("background-media-time-overlay").hidden).toBe(false);
-        expect(nodes.get("background-media-time-overlay").textContent).toBe("0:12");
+        expect(nodes.get("background-media-time-overlay").textContent).toBe("0:12\nMET +0d 00h 00m");
+        expect(nodes.get("background-media-timeline").value).toBe("12");
     });
 
     it("renders caption attribution without enabling native browser subtitle tracks", () => {
@@ -633,8 +638,9 @@ describe("background media panel helpers", () => {
 
         expect(video.querySelectorAll('track[data-background-media-caption-track="true"]')).toHaveLength(0);
         expect(video.crossOrigin).toBe("anonymous");
-        expect(nodes.get("background-media-caption-attribution").textContent).toBe("Auto-generated transcript.");
-        expect(nodes.get("background-media-caption-attribution").hidden).toBe(false);
+        expect(nodes.get("background-media-caption-attribution").hidden).toBe(true);
+        expect(nodes.get("background-media-transcript-note").textContent).toBe("Auto-generated transcript.");
+        expect(nodes.get("background-media-transcript-note").hidden).toBe(false);
 
         actions.render({
             items: [],
@@ -643,7 +649,7 @@ describe("background media panel helpers", () => {
         });
 
         expect(video.querySelectorAll('track[data-background-media-caption-track="true"]')).toHaveLength(0);
-        expect(nodes.get("background-media-caption-attribution").hidden).toBe(true);
+        expect(nodes.get("background-media-transcript-note").hidden).toBe(true);
     });
 
     it("renders active broadcast captions from the VTT track as a visible fallback", async () => {
@@ -872,6 +878,71 @@ describe("background media panel helpers", () => {
         expect(onJumpToTime).toHaveBeenCalledWith(startTimeMs + 22000, item);
     });
 
+    it("keeps the broadcast transcript visible out of range without highlighting a line", async () => {
+        const { nodes } = installBackgroundPanelDom();
+        globalThis.fetch = vi.fn(() => Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({
+                schemaVersion: 4,
+                segments: [
+                    {
+                        id: "intro",
+                        startSeconds: 8,
+                        endSeconds: 30,
+                        displaySpeaker: "Reid Wiseman",
+                        text: "We are looking at Earth.",
+                        status: "ok",
+                    },
+                    {
+                        id: "moon",
+                        startSeconds: 30,
+                        endSeconds: 50,
+                        displaySpeaker: "Victor Glover",
+                        text: "The Moon is right below us.",
+                        status: "ok",
+                    },
+                ],
+            }),
+        }));
+        const startTimeMs = Date.parse("2026-04-06T16:58:14Z");
+        const actions = createBackgroundMediaPanelActions({
+            getAnimationRunning: () => false,
+            getAnimationRealtime: () => true,
+        });
+        openEnabledBackgroundPanel(actions, nodes);
+
+        actions.render({
+            items: [{
+                id: "broadcast-out-of-range-transcript",
+                kind: "videoClip",
+                enabled: true,
+                assetUrl: "broadcast-out-of-range-transcript.mp4",
+                playbackRoles: ["background"],
+                startTimeMs,
+                endTimeMs: startTimeMs + 600000,
+                backgroundPlayback: {
+                    enabled: true,
+                },
+                transcriptDoc: {
+                    sourceUrl: "broadcast-out-of-range-transcript.json",
+                },
+            }],
+            timeMs: startTimeMs - 60000,
+            animationRunning: false,
+        });
+        for (let index = 0; index < 5; index += 1) {
+            await Promise.resolve();
+        }
+
+        const transcriptPanel = nodes.get("background-media-transcript");
+        const transcriptList = nodes.get("background-media-transcript-list");
+        expect(transcriptPanel.hidden).toBe(false);
+        expect(nodes.get("background-media-transcript-status").textContent).toBe("2 lines");
+        expect(transcriptList.children).toHaveLength(2);
+        expect(transcriptList.children[0].dataset.active).not.toBe("true");
+        expect(transcriptList.children[1].dataset.active).not.toBe("true");
+    });
+
     it("toggles broadcast captions from the header button", async () => {
         const { nodes } = installBackgroundPanelDom();
         globalThis.fetch = vi.fn(() => Promise.resolve({
@@ -921,20 +992,20 @@ describe("background media panel helpers", () => {
             await Promise.resolve();
         }
         expect(nodes.get("background-media-caption-text").hidden).toBe(false);
-        expect(nodes.get("background-media-caption-attribution").hidden).toBe(false);
+        expect(nodes.get("background-media-transcript-note").hidden).toBe(false);
 
         const [, toggleCaptions] = nodes.get("background-media-captions").addEventListener.mock.calls
             .find(([type]) => type === "click");
         toggleCaptions();
 
         expect(nodes.get("background-media-caption-text").hidden).toBe(true);
-        expect(nodes.get("background-media-caption-attribution").hidden).toBe(true);
+        expect(nodes.get("background-media-transcript-note").hidden).toBe(true);
         expect(nodes.get("background-media-captions").dataset.captionStatus).toBe("hidden");
         expect(nodes.get("background-media-captions")["aria-pressed"]).toBe("false");
 
         toggleCaptions();
         expect(nodes.get("background-media-caption-text").hidden).toBe(false);
-        expect(nodes.get("background-media-caption-attribution").hidden).toBe(false);
+        expect(nodes.get("background-media-transcript-note").hidden).toBe(false);
         expect(nodes.get("background-media-captions").dataset.captionStatus).toBe("shown");
     });
 
@@ -1442,6 +1513,7 @@ describe("background media panel helpers", () => {
             "background-media-panel-close",
             "background-media-panel-expand",
             "background-media-enable",
+            "background-media-timeline",
             "background-media-mute",
             "background-media-captions",
             "background-media-video",
@@ -1602,6 +1674,7 @@ describe("background media panel helpers", () => {
             "background-media-panel-close",
             "background-media-panel-expand",
             "background-media-enable",
+            "background-media-timeline",
             "background-media-mute",
             "background-media-captions",
             "background-media-video",

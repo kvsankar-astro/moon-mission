@@ -116,7 +116,7 @@ function createOrbitProcessDeps(
         missionStart: animationActions.missionStart,
         getAnimationRunning: session.getAnimationRunning,
         updateAnimateButtonText: () => {
-            uiPort.updateD3ElementText("#animate", "Play");
+            uiPort.updateD3ElementText("#animate", "▶");
         },
         zoomChangeTransform: renderPort.zoomChangeTransform,
         getConfig: app.getConfig,

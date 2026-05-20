@@ -15,7 +15,7 @@ import { resolveMissionKeyFromWindow } from "./panel-layout-store.js";
 
 const DOCKVIEW_SPIKE_PARAM = "dockPanels";
 const LEGACY_PANELS_PARAM = "legacyPanels";
-const DOCKVIEW_SPIKE_STORAGE_PREFIX = "moon-mission:dockview-spike:v7";
+const DOCKVIEW_SPIKE_STORAGE_PREFIX = "moon-mission:dockview-spike:v9";
 const DOCKVIEW_SPIKE_SHELL_STORAGE_SUFFIX = ":shell";
 const DOCKVIEW_SPIKE_SHELL_MIN_WIDTH = 360;
 const DOCKVIEW_SPIKE_SHELL_MIN_HEIGHT = 260;
@@ -800,7 +800,9 @@ function applyDefaultDockviewWorkspaceLayout(layoutHost) {
         auxRail,
         main,
     } = calculateDefaultDockviewWorkspaceSizes(width, height);
-    const halfHeight = Math.max(220, Math.round(height / 2));
+    const broadcastHeight = clampWorkspaceSize((leftRail * 9 / 16) + 48, 180, Math.max(220, Math.round(height * 0.3)));
+    const transcriptHeight = clampWorkspaceSize(Math.round(height * 0.22), 150, 220);
+    const mediaHeight = Math.max(240, height - broadcastHeight - transcriptHeight);
     const auxThirdHeight = Math.max(160, Math.round(height / 3));
 
     api.fromJSON({
@@ -814,11 +816,20 @@ function applyDefaultDockviewWorkspaceLayout(layoutHost) {
                             {
                                 type: "leaf",
                                 data: {
-                                    views: ["workflow:background-media", "workflow:background-transcript"],
+                                    views: ["workflow:background-media"],
                                     activeView: "workflow:background-media",
                                     id: "left-broadcast",
                                 },
-                                size: halfHeight,
+                                size: broadcastHeight,
+                            },
+                            {
+                                type: "leaf",
+                                data: {
+                                    views: ["workflow:background-transcript"],
+                                    activeView: "workflow:background-transcript",
+                                    id: "left-broadcast-transcript",
+                                },
+                                size: transcriptHeight,
                             },
                             {
                                 type: "leaf",
@@ -827,7 +838,7 @@ function applyDefaultDockviewWorkspaceLayout(layoutHost) {
                                     activeView: "workflow:media-browser",
                                     id: "left-media",
                                 },
-                                size: halfHeight,
+                                size: mediaHeight,
                             },
                         ],
                         size: leftRail,
@@ -915,7 +926,7 @@ const DEFAULT_DOCKVIEW_SPIKE_PANELS = [
         component: "mounted-element",
         title: "Broadcast Transcript",
         minimumWidth: 280,
-        minimumHeight: 220,
+        minimumHeight: 160,
         params: {
             mountElementId: "background-media-transcript",
             mountClassName: "background-media-panel__transcript--dockview",
@@ -1050,8 +1061,17 @@ function renderMountedElementPanel({ params }) {
         if (mountClassName) {
             candidate.classList?.add?.(mountClassName);
         }
+        if (mountElementId === "background-media-transcript") {
+            candidate.hidden = false;
+        }
         element.replaceChildren(candidate);
-        candidate.dispatchEvent(new CustomEvent("moon-mission:dockview-panel-layout"));
+        if (typeof CustomEvent === "function") {
+            candidate.dispatchEvent(new CustomEvent("moon-mission:dockview-panel-layout"));
+            candidate.dispatchEvent(new CustomEvent("moon-mission:dockview-panel-mounted", {
+                bubbles: true,
+                detail: { mountElementId },
+            }));
+        }
         observer?.disconnect?.();
         observer = null;
         return true;
@@ -1073,7 +1093,9 @@ function renderMountedElementPanel({ params }) {
     return {
         element,
         layout() {
-            mountedElement?.dispatchEvent?.(new CustomEvent("moon-mission:dockview-panel-layout"));
+            if (typeof CustomEvent === "function") {
+                mountedElement?.dispatchEvent?.(new CustomEvent("moon-mission:dockview-panel-layout"));
+            }
         },
         dispose() {
             disposed = true;

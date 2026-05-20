@@ -1218,11 +1218,11 @@ function createGroundTrackPanelActions(options = {}) {
         if (playButton instanceof HTMLButtonElement) {
             const mainPlay = document.getElementById("animate");
             if (mainPlay instanceof HTMLButtonElement) {
-                playButton.textContent = (mainPlay.textContent || "Play").trim() || "Play";
+                playButton.textContent = (mainPlay.textContent || "▶").trim() || "▶";
                 playButton.disabled = mainPlay.disabled || mainPlay.getAttribute("aria-disabled") === "true";
                 playButton.title = mainPlay.title || "Play or pause animation";
             } else {
-                playButton.textContent = "Play";
+                playButton.textContent = "▶";
                 playButton.disabled = true;
             }
         }

@@ -1961,7 +1961,7 @@
                                     <button id="fastforward" type="button" class="button button--icon" title="Large forward timeline step" aria-label="Large forward timeline step">&raquo;</button>
                                 </div>
                                 <div class="controls-subgroup controls-subgroup--playback" aria-label="Playback">
-                                    <button id="animate" type="button" class="button button--primary" title="Play or pause">Play</button>
+                                    <button id="animate" type="button" class="button button--primary" title="Play or pause" aria-label="Play or pause">▶</button>
                                     <button id="missionnow" type="button" class="button button--now" title="Jump to current time" aria-label="Jump to current time">Now</button>
                                 </div>
                             </div>
@@ -2249,7 +2249,7 @@
                         type="button"
                         title="Play media from current timeline position"
                         aria-label="Play media"
-                    >Play</button>
+                    >▶</button>
                     <button
                         id="media-browser-media-mute"
                         class="media-browser-panel__media-button mission-panel-shell__button mission-panel-shell__button--icon"
@@ -2388,25 +2388,6 @@
                     <div class="background-media-panel__title mission-panel-shell__title">Flyby Broadcast</div>
                     <div class="background-media-panel__header-controls mission-panel-shell__header-controls">
                         <button
-                            id="background-media-mute"
-                            class="background-media-panel__icon-button mission-panel-shell__button mission-panel-shell__button--icon"
-                            type="button"
-                            title="Mute or unmute background video"
-                            aria-pressed="true"
-                            aria-label="Unmute background video"
-                            data-icon="speaker-muted"
-                        ></button>
-                        <button
-                            id="background-media-captions"
-                            class="background-media-panel__icon-button mission-panel-shell__button mission-panel-shell__button--icon"
-                            type="button"
-                            title="Hide subtitles"
-                            aria-pressed="true"
-                            aria-label="Hide subtitles"
-                            data-icon="captions"
-                            data-caption-status="shown"
-                        ></button>
-                        <button
                             id="background-media-panel-expand"
                             class="background-media-panel__icon-button mission-panel-shell__button mission-panel-shell__button--icon"
                             type="button"
@@ -2441,6 +2422,27 @@
                         class="background-media-panel__time-overlay"
                         hidden
                     >0:00</div>
+                    <div class="background-media-panel__stage-controls">
+                        <button
+                            id="background-media-mute"
+                            class="background-media-panel__icon-button mission-panel-shell__button mission-panel-shell__button--icon"
+                            type="button"
+                            title="Mute or unmute background video"
+                            aria-pressed="true"
+                            aria-label="Unmute background video"
+                            data-icon="speaker-muted"
+                        ></button>
+                        <button
+                            id="background-media-captions"
+                            class="background-media-panel__icon-button mission-panel-shell__button mission-panel-shell__button--icon"
+                            type="button"
+                            title="Hide subtitles"
+                            aria-pressed="true"
+                            aria-label="Hide subtitles"
+                            data-icon="captions"
+                            data-caption-status="shown"
+                        ></button>
+                    </div>
                     <div
                         id="background-media-caption-text"
                         class="background-media-panel__caption-text"
@@ -2451,6 +2453,31 @@
                         class="background-media-panel__caption-attribution"
                         hidden
                     ></div>
+                    <div id="background-media-controls" class="background-media-panel__controls">
+                        <button
+                            id="background-media-enable"
+                            class="background-media-panel__play-toggle mission-panel-shell__button"
+                            type="button"
+                            aria-pressed="false"
+                            title="Play the broadcast video at the current mission time"
+                        >▶</button>
+                        <label class="background-media-panel__timeline">
+                            <span class="sr-only">Broadcast timeline</span>
+                            <input
+                                id="background-media-timeline"
+                                class="background-media-panel__timeline-slider"
+                                type="range"
+                                min="0"
+                                max="0"
+                                step="0.25"
+                                value="0"
+                            />
+                        </label>
+                        <div class="background-media-panel__meta">
+                            <span id="background-media-title">No background video selected</span>
+                            <span id="background-media-status">Disabled</span>
+                        </div>
+                    </div>
                 </div>
                 <div
                     id="background-media-transcript"
@@ -2465,24 +2492,16 @@
                         ></span>
                     </div>
                     <div
+                        id="background-media-transcript-note"
+                        class="background-media-panel__transcript-note"
+                        hidden
+                    ></div>
+                    <div
                         id="background-media-transcript-list"
                         class="background-media-panel__transcript-list"
                         role="list"
                         aria-label="Broadcast transcript"
                     ></div>
-                </div>
-                <div id="background-media-controls" class="background-media-panel__controls">
-                    <button
-                        id="background-media-enable"
-                        class="background-media-panel__play-toggle mission-panel-shell__button"
-                        type="button"
-                        aria-pressed="false"
-                        title="Play the broadcast video at the current mission time"
-                    >Play broadcast</button>
-                    <div class="background-media-panel__meta">
-                        <span id="background-media-title">No background video selected</span>
-                        <span id="background-media-status">Disabled</span>
-                    </div>
                 </div>
             </div>
         </div>

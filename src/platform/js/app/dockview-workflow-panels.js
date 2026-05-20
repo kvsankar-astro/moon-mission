@@ -68,7 +68,7 @@ function resolveDockedWorkflowPanelPosition(layoutHost, panelId) {
     if (id === "workflow:background-transcript") {
         if (hasDockviewPanel(layoutHost, "workflow:background-media")) {
             return {
-                direction: "within",
+                direction: "below",
                 referencePanel: "workflow:background-media",
             };
         }

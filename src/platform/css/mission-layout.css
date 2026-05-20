@@ -1371,7 +1371,12 @@ html[data-app-view="selector"] .mission-loading-overlay,
 }
 
 .aux-camera-view__composer-transport-row .button--primary {
-    min-width: 42px;
+    width: 28px;
+    min-width: 28px;
+    padding: 0;
+    font-family: "Segoe UI Symbol", "Noto Sans Symbols", var(--ui-font-condensed);
+    font-size: 14px;
+    line-height: 1;
 }
 
 .aux-camera-view__composer-transport-row .button--realtime {
@@ -3513,9 +3518,15 @@ body:has(#timeline-dock.timeline-dock--media-track-visible) #control-panel {
 }
 
 #animate {
+    width: 30px;
+    min-width: 30px;
+    padding: 0;
     background: rgba(77, 141, 255, 0.16);
     border-color: rgba(121, 171, 255, 0.62);
     color: #f4f8ff;
+    font-family: "Segoe UI Symbol", "Noto Sans Symbols", var(--ui-font-condensed);
+    font-size: 15px;
+    line-height: 1;
 }
 
 #landingbutton,

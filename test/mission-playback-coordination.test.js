@@ -237,7 +237,7 @@ describe("mission playback coordination", () => {
             timeMs: 2345,
         });
         expect(runtimeSessionState.setAnimationRunning).toHaveBeenCalledWith(true);
-        expect(updateD3ElementText).toHaveBeenCalledWith("#animate", "Pause");
+        expect(updateD3ElementText).toHaveBeenCalledWith("#animate", "⏸");
         expect(updateTransportControlsUI).toHaveBeenCalledWith(true);
         expect(dispatchAnimationPlayStateUpdated).toHaveBeenCalledWith(true);
         expect(setView).toHaveBeenCalledTimes(1);
