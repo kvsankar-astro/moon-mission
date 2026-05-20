@@ -188,4 +188,38 @@ describe("panel layout host", () => {
             createComponent: expect.any(Function),
         }));
     });
+
+    it("passes floating panel bounds through to Dockview", () => {
+        globalThis.localStorage = createStorageStub();
+        const api = createDockviewApiStub();
+
+        const host = createPanelLayoutHost({
+            container: createContainerStub(),
+            storageKey: "dock-key",
+            panels: [],
+            renderPanel: vi.fn(),
+            createDockviewImpl: vi.fn(() => api),
+        });
+
+        host.addPanel({
+            id: "workflow:floating-controls",
+            title: "Floating Controls",
+            floating: {
+                x: 24,
+                y: 40,
+                width: 320,
+                height: 480,
+            },
+        });
+
+        expect(api.addPanel).toHaveBeenCalledWith(expect.objectContaining({
+            id: "workflow:floating-controls",
+            floating: {
+                x: 24,
+                y: 40,
+                width: 320,
+                height: 480,
+            },
+        }));
+    });
 });

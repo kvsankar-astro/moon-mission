@@ -3,6 +3,7 @@ const DOCKED_WORKFLOW_PANEL_IDS = [
     "workflow:background-media",
     "workflow:background-transcript",
     "workflow:splashdown",
+    "aux:earth-rise-composer-controls",
     "aux:earth-rise-composer",
     "aux:moon",
     "aux:earth",
@@ -128,6 +129,21 @@ function resolveDockedWorkflowPanelPosition(layoutHost, panelId) {
             return {
                 direction: "right",
                 referencePanel: MAIN_VIEW_PANEL_ID,
+            };
+        }
+        return undefined;
+    }
+    if (id === "aux:earth-rise-composer-controls") {
+        if (hasDockviewPanel(layoutHost, MAIN_VIEW_PANEL_ID)) {
+            return {
+                direction: "right",
+                referencePanel: MAIN_VIEW_PANEL_ID,
+            };
+        }
+        if (hasDockviewPanel(layoutHost, "aux:earth-rise-composer")) {
+            return {
+                direction: "left",
+                referencePanel: "aux:earth-rise-composer",
             };
         }
         return undefined;

@@ -961,6 +961,8 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 }
 
 .experimental-dockview-panel--mounted {
+    display: flex;
+    flex-direction: column;
     overflow: hidden;
     padding: 0;
     background: transparent;

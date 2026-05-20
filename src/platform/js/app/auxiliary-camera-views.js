@@ -129,6 +129,7 @@ const PANEL_SPECS = Object.freeze([
         defaultFov: 50,
     },
 ]);
+const COMPOSER_CONTROLS_PANEL_ID = "aux:earth-rise-composer-controls";
 
 const AUXILIARY_VIEW_CAMERA_PRESETS = Object.freeze(
     PANEL_SPECS
@@ -1295,6 +1296,9 @@ class AuxiliaryCameraViewsManager {
                     : undefined,
             },
         });
+        if (panelState.mode === "composer") {
+            this.syncComposerControlsPanelRegistry(panelState);
+        }
     }
 
     applyPanelVisibilityState(panelState, state, { persist = true, requestRender = true } = {}) {
@@ -1881,6 +1885,7 @@ class AuxiliaryCameraViewsManager {
         panelState.y = clamped.y;
         panelState.panel.style.left = `${panelState.x}px`;
         panelState.panel.style.top = `${panelState.y}px`;
+        this.updateComposerControlsPopoverPosition(panelState);
     }
 
     clampPanelPosition(panelState) {
@@ -2252,6 +2257,146 @@ class AuxiliaryCameraViewsManager {
         return true;
     }
 
+    openComposerControlsPanel(panelState) {
+        if (!panelState || panelState.mode !== "composer" || !panelState.composerControlMatrix) {
+            return false;
+        }
+        const layoutHost = getDockviewSpikeLayoutHost();
+        if (!layoutHost) {
+            return false;
+        }
+        this.ensureAuxiliaryPanelDocked(panelState);
+        if (!layoutHost.api?.getPanel?.(COMPOSER_CONTROLS_PANEL_ID)) {
+            layoutHost.addPanel({
+                id: COMPOSER_CONTROLS_PANEL_ID,
+                component: "mounted-element",
+                title: "Frame Controls",
+                floating: this.resolveComposerControlsFloatingFrame(panelState),
+                params: {
+                    mountElementId: COMPOSER_CONTROLS_PANEL_ID,
+                    mountClassName: "aux-camera-view__composer-control-matrix--dockview",
+                    fallbackParentId: panelState.panel.id,
+                },
+                initialWidth: 320,
+                minimumWidth: 280,
+                minimumHeight: 260,
+            });
+        }
+        panelState.composerControlsDockviewOpen = true;
+        this.syncComposerControlsPanelRegistry(panelState);
+        this.syncComposerControlsToggleUi(panelState);
+        layoutHost.focusPanel(COMPOSER_CONTROLS_PANEL_ID);
+        return true;
+    }
+
+    resolveComposerControlsFloatingFrame(panelState) {
+        const frameRect = panelState?.panel?.getBoundingClientRect?.() || {};
+        const workspaceRect = getDockviewSpikeLayoutHost()?.root?.getBoundingClientRect?.() || {};
+        const viewportWidth = Math.max(1, Number(globalThis?.innerWidth) || 1440);
+        const viewportHeight = Math.max(1, Number(globalThis?.innerHeight) || 900);
+        const edgePad = 8;
+        const gap = 8;
+        const width = Math.min(
+            340,
+            Math.max(300, Math.round((Number(frameRect.width) || 320) * 0.7)),
+        );
+        const top = Math.max(
+            edgePad,
+            Math.round(Number(workspaceRect.top) || edgePad),
+        );
+        const height = Math.max(
+            260,
+            Math.min(
+                viewportHeight - top - edgePad,
+                Math.round(Number(workspaceRect.height) || (viewportHeight - top - edgePad)),
+            ),
+        );
+        let x = Math.round((Number(frameRect.left) || (viewportWidth - width - edgePad)) - width - gap);
+        if (x < edgePad) {
+            x = Math.round((Number(frameRect.right) || edgePad) + gap);
+        }
+        x = Math.min(Math.max(edgePad, x), Math.max(edgePad, viewportWidth - width - edgePad));
+        return { x, y: top, width, height };
+    }
+
+    closeComposerControlsPanel(panelState) {
+        const layoutHost = getDockviewSpikeLayoutHost();
+        if (layoutHost) {
+            layoutHost.closePanel(COMPOSER_CONTROLS_PANEL_ID);
+        }
+        if (panelState) {
+            panelState.composerControlsDockviewOpen = false;
+            this.syncComposerControlsPanelRegistry(panelState);
+            this.syncComposerControlsToggleUi(panelState);
+        }
+        return true;
+    }
+
+    toggleComposerControlsPanel(panelState) {
+        if (!panelState) {
+            return false;
+        }
+        const layoutHost = getDockviewSpikeLayoutHost();
+        if (!layoutHost) {
+            return false;
+        }
+        if (layoutHost.api?.getPanel?.(COMPOSER_CONTROLS_PANEL_ID)) {
+            return this.closeComposerControlsPanel(panelState);
+        }
+        return this.openComposerControlsPanel(panelState);
+    }
+
+    syncComposerControlsToggleUi(panelState) {
+        const toggle = panelState?.composerControlsToggleButton;
+        if (!toggle) return;
+        const dockviewEnabled = this.isDockviewAuxiliaryPanelEnabled();
+        const expanded = dockviewEnabled
+            ? !!getDockviewSpikeLayoutHost()?.api?.getPanel?.(COMPOSER_CONTROLS_PANEL_ID)
+            : panelState.composerControlsCollapsed !== true;
+        toggle.setAttribute("aria-expanded", expanded ? "true" : "false");
+        toggle.setAttribute(
+            "aria-label",
+            expanded ? "Close Frame and Shoot controls" : "Open Frame and Shoot controls",
+        );
+        toggle.title = expanded ? "Close controls" : "Open controls";
+    }
+
+    syncComposerControlsPanelRegistry(panelState) {
+        if (!panelState || panelState.mode !== "composer") {
+            return;
+        }
+        const layoutHost = getDockviewSpikeLayoutHost();
+        const isOpen = !!layoutHost?.api?.getPanel?.(COMPOSER_CONTROLS_PANEL_ID);
+        panelState.composerControlsDockviewOpen = isOpen;
+        updateMissionPanel(COMPOSER_CONTROLS_PANEL_ID, {
+            id: COMPOSER_CONTROLS_PANEL_ID,
+            title: "Frame Controls",
+            kind: "workflow",
+            panelType: "flyby-controls",
+            builtIn: true,
+            available: panelState.missionEnabled === true,
+            state: isOpen ? "open" : "closed",
+            sortOrder: Number.isFinite(panelState.sortOrder) ? panelState.sortOrder + 1 : 0,
+            infoItems: [
+                { label: "Panel Kind", value: "controls" },
+                { label: "For", value: "Frame and Shoot" },
+            ],
+            actions: {
+                open: panelState.missionEnabled === true
+                    ? () => this.openComposerControlsPanel(panelState)
+                    : undefined,
+                restore: panelState.missionEnabled === true
+                    ? () => this.openComposerControlsPanel(panelState)
+                    : undefined,
+                focus: isOpen
+                    ? () => layoutHost?.focusPanel?.(COMPOSER_CONTROLS_PANEL_ID)
+                    : undefined,
+                close: () => this.closeComposerControlsPanel(panelState),
+            },
+        });
+        this.syncComposerControlsToggleUi(panelState);
+    }
+
     closeDockedAuxiliaryPanel(panelState) {
         const layoutHost = getDockviewSpikeLayoutHost();
         if (!layoutHost || !panelState?.panelRegistryId) {
@@ -2579,8 +2724,9 @@ class AuxiliaryCameraViewsManager {
             composerControlsToggleButton = document.createElement("button");
             composerControlsToggleButton.className = "aux-camera-view__composer-controls-toggle mission-panel-shell__button mission-panel-shell__button--icon";
             composerControlsToggleButton.type = "button";
-            composerControlsToggleButton.textContent = "\u25c0";
+            composerControlsToggleButton.textContent = "";
             composerControlsToggleButton.setAttribute("aria-label", "Collapse Frame and Shoot controls");
+            composerControlsToggleButton.setAttribute("aria-expanded", "true");
             composerControlsToggleButton.title = "Collapse controls";
         }
 
@@ -2720,6 +2866,8 @@ class AuxiliaryCameraViewsManager {
             }
             composerControlMatrix = document.createElement("div");
             composerControlMatrix.className = "aux-camera-view__composer-control-matrix";
+            composerControlMatrix.id = COMPOSER_CONTROLS_PANEL_ID;
+            composerControlMatrix.dataset.panelId = COMPOSER_CONTROLS_PANEL_ID;
             if (composerControlsToggleButton) {
                 composerControlMatrix.appendChild(composerControlsToggleButton);
             }
@@ -3698,6 +3846,7 @@ class AuxiliaryCameraViewsManager {
             composerDisabledOverlay,
             composerControlMatrix,
             composerControlsToggleButton,
+            composerControlsDockviewOpen: false,
             overlayCanvas,
             overlayCtx,
             farSideTintEnabled: false,
@@ -3961,6 +4110,10 @@ class AuxiliaryCameraViewsManager {
         chipButton.addEventListener("click", onChipClick);
         if (composerControlsToggleButton) {
             const onComposerControlsToggleClick = () => {
+                if (this.isDockviewAuxiliaryPanelEnabled()) {
+                    this.toggleComposerControlsPanel(panelState);
+                    return;
+                }
                 this.setComposerControlsCollapsed(
                     panelState,
                     panelState.composerControlsCollapsed !== true,
@@ -5431,6 +5584,20 @@ class AuxiliaryCameraViewsManager {
             sortOrder: panelState.sortOrder,
             actions: {},
         });
+        if (panelState.mode === "composer") {
+            registerMissionPanel({
+                id: COMPOSER_CONTROLS_PANEL_ID,
+                title: "Frame Controls",
+                kind: "workflow",
+                panelType: "flyby-controls",
+                builtIn: true,
+                available: panelState.missionEnabled === true,
+                state: "closed",
+                sortOrder: Number.isFinite(panelState.sortOrder) ? panelState.sortOrder + 1 : 0,
+                actions: {},
+            });
+            this.syncComposerControlsPanelRegistry(panelState);
+        }
         this.syncPanelRegistry(panelState);
     }
 
@@ -5488,6 +5655,8 @@ class AuxiliaryCameraViewsManager {
             panelState.deleted !== true;
         if (shouldShowPanel && this.isDockviewAuxiliaryPanelEnabled()) {
             this.ensureAuxiliaryPanelDocked(panelState);
+        } else if (!shouldShowPanel && panelState.mode === "composer") {
+            this.closeComposerControlsPanel(panelState);
         }
         panelState.panel.hidden = !shouldShowPanel;
         if (panelState.chipButton) {
@@ -5547,7 +5716,9 @@ class AuxiliaryCameraViewsManager {
         panelState.composerControlsCollapsed = isCollapsed;
         panelState.panel.classList.toggle("aux-camera-view--composer-controls-collapsed", isCollapsed);
         if (panelState.composerControlsToggleButton) {
-            const toggleHost = isCollapsed ? panelState.viewport : panelState.composerControlMatrix;
+            const toggleHost = this.isDockviewAuxiliaryPanelEnabled() || isCollapsed
+                ? panelState.viewport
+                : panelState.composerControlMatrix;
             if (toggleHost && panelState.composerControlsToggleButton.parentElement !== toggleHost) {
                 if (isCollapsed) {
                     toggleHost.appendChild(panelState.composerControlsToggleButton);
@@ -5555,15 +5726,17 @@ class AuxiliaryCameraViewsManager {
                     toggleHost.prepend(panelState.composerControlsToggleButton);
                 }
             }
-            panelState.composerControlsToggleButton.textContent = isCollapsed ? "\u25b6" : "\u25c0";
+            panelState.composerControlsToggleButton.textContent = "";
             panelState.composerControlsToggleButton.setAttribute(
                 "aria-label",
                 isCollapsed ? "Expand Frame and Shoot controls" : "Collapse Frame and Shoot controls",
             );
+            panelState.composerControlsToggleButton.setAttribute("aria-expanded", isCollapsed ? "false" : "true");
             panelState.composerControlsToggleButton.title = isCollapsed
                 ? "Expand controls"
                 : "Collapse controls";
         }
+        this.updateComposerControlsPopoverPosition(panelState);
         this.scheduleVisiblePanelRefresh(panelState);
         if (persist) {
             this.queuePersistPanelState();
@@ -5672,6 +5845,50 @@ class AuxiliaryCameraViewsManager {
         }
         this.clearPanelOverlay(panelState);
         this.syncPanelRegistry(panelState);
+    }
+
+    updateComposerControlsPopoverPosition(panelState) {
+        if (
+            !panelState ||
+            panelState.mode !== "composer" ||
+            panelState.composerControlsCollapsed === true ||
+            !panelState.panel ||
+            !panelState.composerControlMatrix
+        ) {
+            return;
+        }
+
+        const panelRect = panelState.panel.getBoundingClientRect?.();
+        if (!panelRect || !Number.isFinite(panelRect.left) || !Number.isFinite(panelRect.top)) {
+            return;
+        }
+
+        const windowRef = typeof window !== "undefined" ? window : null;
+        const viewportWidth = Math.max(1, Number(windowRef?.innerWidth) || 1);
+        const viewportHeight = Math.max(1, Number(windowRef?.innerHeight) || 1);
+        const gap = 8;
+        const edgePad = 8;
+        const preferredWidth = Math.min(340, Math.max(286, Math.round(panelRect.width * 0.38)));
+        const headerHeight = Math.max(
+            0,
+            Number(panelState.panel.querySelector?.(".aux-camera-view__header")?.getBoundingClientRect?.().height) || 0,
+        );
+        let left = panelRect.left - preferredWidth - gap;
+        if (left < edgePad) {
+            left = panelRect.right + gap;
+        }
+        left = Math.min(Math.max(edgePad, left), Math.max(edgePad, viewportWidth - preferredWidth - edgePad));
+
+        const top = Math.min(
+            Math.max(edgePad, panelRect.top + headerHeight + 6),
+            Math.max(edgePad, viewportHeight - 180),
+        );
+        const maxHeight = Math.max(180, Math.min(viewportHeight - top - edgePad, 640));
+
+        panelState.composerControlMatrix.style.setProperty("--aux-composer-controls-popout-left", `${Math.round(left)}px`);
+        panelState.composerControlMatrix.style.setProperty("--aux-composer-controls-popout-top", `${Math.round(top)}px`);
+        panelState.composerControlMatrix.style.setProperty("--aux-composer-controls-popout-width", `${Math.round(preferredWidth)}px`);
+        panelState.composerControlMatrix.style.setProperty("--aux-composer-controls-popout-max-height", `${Math.round(maxHeight)}px`);
     }
 
     syncMissionPanelPolicy(missionConfig) {
@@ -6799,6 +7016,7 @@ class AuxiliaryCameraViewsManager {
         if (!isComposer && panelWidth > 0 && Math.abs(panelWidth - panelHeight) > 1) {
             panelState.panel.style.height = `${panelWidth}px`;
         }
+        this.updateComposerControlsPopoverPosition(panelState);
 
         const width = Math.max(120, Math.floor(panelState.viewport.clientWidth));
         const height = Math.max(80, Math.floor(panelState.viewport.clientHeight));

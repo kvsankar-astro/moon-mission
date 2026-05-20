@@ -33,6 +33,7 @@ const DEFAULT_OPEN_DOCKVIEW_PANEL_IDS = [
     "aux:earth-origin-orbit-xy",
 ];
 const DEFAULT_CLOSED_DOCKVIEW_PANEL_IDS = [
+    "aux:earth-rise-composer-controls",
     "aux:earth-to-moon",
     "workflow:splashdown",
 ];
@@ -1308,6 +1309,7 @@ function initializeExperimentalDockviewHost() {
     if (!layoutHost.api?.getPanel?.("workflow:background-transcript")) {
         layoutHost.addPanel(DEFAULT_DOCKVIEW_SPIKE_PANELS[1]);
     }
+    layoutHost.closePanel("aux:earth-rise-composer-controls");
     layoutHost.focusPanel(MAIN_VIEW_PANEL_ID);
     let unsubscribeDefaultPanelOpen = null;
     let resetWorkspaceRetryHandle = null;

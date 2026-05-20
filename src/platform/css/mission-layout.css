@@ -396,10 +396,11 @@ canvas {
 .aux-camera-view--composer {
     --aux-composer-triangle-size: 12px;
     grid-template-rows: auto 1fr;
-    grid-template-columns: minmax(300px, 36%) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
     min-width: 420px;
     min-height: 320px;
     aspect-ratio: auto;
+    overflow: visible;
 }
 
 .aux-camera-view--composer.aux-camera-view--composer-controls-collapsed {
@@ -511,22 +512,69 @@ html[data-app-view="selector"] .mission-loading-overlay,
 }
 
 .aux-camera-view--composer > .aux-camera-view__composer-control-matrix {
-    grid-row: 2;
-    grid-column: 1;
-    align-self: stretch;
-    position: relative;
+    position: fixed;
+    left: var(--aux-composer-controls-popout-left, 8px);
+    top: var(--aux-composer-controls-popout-top, 48px);
+    z-index: calc(var(--ui-config-popover-z) + 8);
+    width: var(--aux-composer-controls-popout-width, 310px);
+    max-width: calc(100vw - 16px);
+    max-height: var(--aux-composer-controls-popout-max-height, min(640px, calc(100vh - 64px)));
     min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
+    border: 1px solid rgba(121, 171, 255, 0.34);
+    border-radius: var(--ui-radius-sm);
+    box-shadow: 0 18px 44px rgba(0, 0, 0, 0.48), inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 .aux-camera-view--composer.aux-camera-view--composer-controls-collapsed > .aux-camera-view__composer-control-matrix {
     display: none;
 }
 
+.dockview-panels-enabled .aux-camera-view--composer > .aux-camera-view__composer-control-matrix:not(.aux-camera-view__composer-control-matrix--dockview) {
+    display: none;
+}
+
+.aux-camera-view__composer-control-matrix--dockview {
+    position: static;
+    display: grid;
+    grid-auto-rows: max-content;
+    flex: 1 1 auto;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    max-width: none;
+    max-height: none;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(132, 170, 223, 0.5) rgba(5, 10, 18, 0.45);
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.aux-camera-view__composer-control-matrix--dockview::-webkit-scrollbar {
+    width: 9px;
+}
+
+.aux-camera-view__composer-control-matrix--dockview::-webkit-scrollbar-track {
+    background: rgba(5, 10, 18, 0.45);
+}
+
+.aux-camera-view__composer-control-matrix--dockview::-webkit-scrollbar-thumb {
+    border: 2px solid rgba(5, 10, 18, 0.45);
+    border-radius: 999px;
+    background: rgba(132, 170, 223, 0.58);
+}
+
 .aux-camera-view--composer > .aux-camera-view__viewport {
     grid-row: 2;
-    grid-column: 2;
+    grid-column: 1;
+    overflow: hidden;
+    border-radius: 0 0 var(--ui-radius-sm) var(--ui-radius-sm);
 }
 
 .aux-camera-view--composer.aux-camera-view--composer-controls-collapsed > .aux-camera-view__viewport {
@@ -560,16 +608,35 @@ html[data-app-view="selector"] .mission-loading-overlay,
     top: 7px;
     right: 7px;
     z-index: 6;
-    width: 22px;
+    width: 24px;
     height: 22px;
     border: 0;
     border-radius: 0;
     background: transparent;
     box-shadow: none;
     outline: none;
-    font-size: var(--aux-composer-triangle-size);
     line-height: 1;
     color: rgba(205, 225, 252, 0.94);
+}
+
+.aux-camera-view--composer .aux-camera-view__composer-controls-toggle::before,
+.aux-camera-view--composer .aux-camera-view__composer-controls-toggle::after {
+    position: absolute;
+    left: 5px;
+    right: 5px;
+    height: 2px;
+    border-radius: 999px;
+    background: currentColor;
+    content: "";
+}
+
+.aux-camera-view--composer .aux-camera-view__composer-controls-toggle::before {
+    top: 6px;
+    box-shadow: 0 5px 0 currentColor;
+}
+
+.aux-camera-view--composer .aux-camera-view__composer-controls-toggle::after {
+    top: 16px;
 }
 
 .aux-camera-view--composer .aux-camera-view__composer-controls-toggle:hover,
@@ -1392,13 +1459,13 @@ html[data-app-view="selector"] .mission-loading-overlay,
 .aux-camera-view__composer-optics-header {
     display: flex;
     align-items: center;
-    gap: 1px;
+    gap: 4px;
     min-width: 0;
     width: fit-content;
-    padding: 1px;
-    border: 1px solid rgba(100, 130, 180, 0.44);
-    border-radius: 999px;
-    background: rgba(10, 18, 32, 0.82);
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
 }
 
 .aux-camera-view__composer-optics-header .aux-camera-view__composer-label {

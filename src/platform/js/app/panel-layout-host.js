@@ -132,6 +132,7 @@ function addPanelDescriptor(api, panel) {
         title: panel.title || id,
         params: panel.params || {},
         position: panel.position,
+        floating: panel.floating,
         inactive: panel.inactive === true,
         initialWidth: panel.initialWidth,
         initialHeight: panel.initialHeight,
